@@ -299,7 +299,7 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    loadRules(paginationManager.currentPage, paginationManager.itemsPerPage, paginationManager.currentSearch);
+                    loadRules(paginationManager.currentPage, paginationManager.currentLimit, paginationManager.currentSearch);
                 } else {
                     alert('Failed to delete rule: ' + data.message);
                 }
@@ -339,7 +339,7 @@
 
                 if (data.success) {
                     closeModal();
-                    loadRules(paginationManager.currentPage, paginationManager.itemsPerPage, paginationManager.currentSearch);
+                    loadRules(paginationManager.currentPage, paginationManager.currentLimit, paginationManager.currentSearch);
                 } else {
                     document.getElementById('errorMessage').textContent = data.message;
                     document.getElementById('errorMessage').classList.remove('hidden');
@@ -440,7 +440,7 @@
 
                     setTimeout(() => {
                         closeImportModal();
-                        loadRules(1, paginationManager.itemsPerPage, '');
+                        loadRules(1, paginationManager.currentLimit, '');
                     }, 2000);
                 } else {
                     document.getElementById('importSuccess').classList.add('hidden');
@@ -464,16 +464,39 @@
             }
         });
 
-        // Initialize pagination with custom load function
-        const paginationManager = new PaginationManager({
-            loadDataFunction: loadRules,
-            searchBoxSelector: '.search-box',
-            limitSelectorSelector: '.limit-selector',
-            paginationContainerSelector: '.pagination-container'
-        });
+        // Initialize pagination manager
+        let paginationManager;
+        let isInitialized = false;
 
-        // Initial load
-        loadRules();
+        function initializeApp() {
+            if (isInitialized) return;
+            isInitialized = true;
+
+            paginationManager = new PaginationManager({
+                defaultLimit: 25,
+                limitOptions: [10, 25, 50, 100],
+                onPageChange: (page, limit, search) => loadRules(page, limit, search),
+                onLimitChange: (page, limit, search) => loadRules(page, limit, search),
+                onSearchChange: (page, limit, search) => loadRules(page, limit, search)
+            });
+
+            // Initialize pagination components (main container is the div with class max-w-7xl)
+            paginationManager.init('main-content');
+
+            // Load initial data
+            loadRules();
+        }
+
+        // Load data on page load
+        if (document.readyState === 'loading') {
+            // DOM not ready yet, wait for DOMContentLoaded
+            document.addEventListener('DOMContentLoaded', () => {
+                initializeApp();
+            });
+        } else {
+            // DOM already loaded, initialize now
+            initializeApp();
+        }
     </script>
 </body>
 </html>

@@ -126,6 +126,7 @@ func SetupAPIRoutes(
 	uploads := protected.Group("/uploads")
 	uploads.Post("/", uploadHandler.UploadFile)
 	uploads.Get("/", uploadHandler.GetSessions)
+	uploads.Get("/template", uploadHandler.DownloadTemplate)
 	uploads.Get("/:id", uploadHandler.GetSessionDetail)
 	uploads.Get("/:id/transactions", uploadHandler.GetTransactions)
 	uploads.Post("/:id/process", uploadHandler.ProcessSession)

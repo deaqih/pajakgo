@@ -227,6 +227,20 @@ func (h *UploadHandler) ProcessSession(c *fiber.Ctx) error {
 	})
 }
 
+func (h *UploadHandler) DownloadTemplate(c *fiber.Ctx) error {
+	// Generate template filename
+	templateFileName := "transaction_upload_template.xlsx"
+	templatePath := filepath.Join("./storage/exports", templateFileName)
+
+	// Generate transaction template
+	if err := h.excelService.GenerateTransactionTemplate(templatePath); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to generate template", err)
+	}
+
+	// Send file
+	return c.Download(templatePath, templateFileName)
+}
+
 func (h *UploadHandler) ExportSession(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {

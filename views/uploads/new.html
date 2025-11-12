@@ -35,6 +35,19 @@
                 <p class="text-gray-600 mt-2">Upload your transaction data in Excel format (.xlsx or .xls)</p>
             </div>
 
+            <!-- Template Download Section -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-semibold text-blue-900">Need a template?</h3>
+                        <p class="text-blue-700 text-sm mt-1">Download our Excel template with sample data and instructions</p>
+                    </div>
+                    <button onclick="downloadTemplate()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition duration-200">
+                        <i class="fas fa-file-download mr-2"></i>Download Template
+                    </button>
+                </div>
+            </div>
+
             <form id="uploadForm" class="space-y-6">
                 <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
                     <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
@@ -181,6 +194,33 @@
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.classList.remove('hidden');
+        }
+
+        async function downloadTemplate() {
+            try {
+                const response = await fetch('/api/v1/uploads/template', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'transaction_upload_template.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    showError('Failed to download template');
+                }
+            } catch (error) {
+                showError('Error downloading template: ' + error.message);
+            }
         }
     </script>
 </body>
