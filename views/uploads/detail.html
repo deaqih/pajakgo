@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Detail - Accounting Web</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <!-- Navbar -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="text-2xl font-bold text-blue-600">Accounting Web</a>
+                    <span class="text-gray-400">|</span>
+                    <a href="/uploads" class="text-gray-600 hover:text-blue-600">Uploads</a>
+                    <span class="text-gray-400">|</span>
+                    <span class="text-gray-600">Detail</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="userDisplay" class="text-gray-700"></span>
+                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Session Info -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold">Session Details</h2>
+                <div class="space-x-2">
+                    <button onclick="processSession()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+                        <i class="fas fa-cog mr-2"></i>Process
+                    </button>
+                    <button onclick="exportSession()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                        <i class="fas fa-download mr-2"></i>Export
+                    </button>
+                </div>
+            </div>
+
+            <div id="sessionInfo" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                    <p class="text-sm text-gray-500">Session Code</p>
+                    <p class="font-semibold" id="sessionCode">Loading...</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Filename</p>
+                    <p class="font-semibold" id="filename">Loading...</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Total Rows</p>
+                    <p class="font-semibold" id="totalRows">Loading...</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Status</p>
+                    <p class="font-semibold" id="status">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-xl font-bold mb-4">Transactions</h3>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">No</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">No Akun</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Akun</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Keterangan</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Debit</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Kredit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="7" class="px-4 py-4 text-center text-gray-500">
+                                <i class="fas fa-spinner fa-spin mr-2"></i>Loading...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        document.getElementById('userDisplay').textContent = user.username || 'User';
+
+        const sessionId = window.location.pathname.split('/').pop();
+
+        function logout() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+
+        async function loadSessionDetail() {
+            try {
+                const response = await fetch(`/api/v1/uploads/${sessionId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const session = data.data;
+                    document.getElementById('sessionCode').textContent = session.session_code;
+                    document.getElementById('filename').textContent = session.filename;
+                    document.getElementById('totalRows').textContent = session.total_rows;
+                    document.getElementById('status').textContent = session.status;
+                }
+            } catch (error) {
+                console.error('Error loading session:', error);
+            }
+        }
+
+        async function loadTransactions() {
+            try {
+                const response = await fetch(`/api/v1/uploads/${sessionId}/transactions?limit=100`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.data.transactions) {
+                    const tbody = document.getElementById('tableBody');
+                    tbody.innerHTML = '';
+
+                    if (data.data.transactions.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-4 text-center text-gray-500">No transactions found</td></tr>`;
+                        return;
+                    }
+
+                    data.data.transactions.forEach((txn, index) => {
+                        const row = `
+                            <tr>
+                                <td class="px-4 py-3">${index + 1}</td>
+                                <td class="px-4 py-3 whitespace-nowrap">${txn.tanggal || '-'}</td>
+                                <td class="px-4 py-3">${txn.no_akun || '-'}</td>
+                                <td class="px-4 py-3">${txn.nama_akun || '-'}</td>
+                                <td class="px-4 py-3">${txn.keterangan || '-'}</td>
+                                <td class="px-4 py-3 text-right">${formatNumber(txn.debit)}</td>
+                                <td class="px-4 py-3 text-right">${formatNumber(txn.kredit)}</td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+                } else {
+                    document.getElementById('tableBody').innerHTML =
+                        `<tr><td colspan="7" class="px-4 py-4 text-center text-gray-500">Failed to load transactions</td></tr>`;
+                }
+            } catch (error) {
+                document.getElementById('tableBody').innerHTML =
+                    `<tr><td colspan="7" class="px-4 py-4 text-center text-red-500">Error: ${error.message}</td></tr>`;
+            }
+        }
+
+        function formatNumber(num) {
+            if (!num) return '0';
+            return parseFloat(num).toLocaleString('id-ID');
+        }
+
+        function processSession() {
+            alert('Process session - Coming soon! (Requires Redis/Asynq)');
+        }
+
+        function exportSession() {
+            window.location.href = `/api/v1/uploads/${sessionId}/export`;
+        }
+
+        // Load data
+        loadSessionDetail();
+        loadTransactions();
+    </script>
+</body>
+</html>

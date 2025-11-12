@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(go build:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(go run:*)",
+      "Bash(findstr:*)",
+      "Bash(./bin/web.exe)",
+      "Bash(cat:*)",
+      "Bash(go mod tidy:*)",
+      "Bash(curl:*)",
+      "Bash(/dev/null)",
+      "Bash(netstat:*)",
+      "Bash(timeout 5 ./bin/web.exe:*)",
+      "Bash(taskkill //F //PID 44172)",
+      "Bash(internal/handler/obyek_rule_handler.go)",
+      "Bash(views/master/obyek-rules.html)",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

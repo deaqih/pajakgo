@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Upload - Accounting Web</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <!-- Navbar -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="text-2xl font-bold text-blue-600">Accounting Web</a>
+                    <span class="text-gray-400">|</span>
+                    <span class="text-gray-600">New Upload</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="userDisplay" class="text-gray-700"></span>
+                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-3xl mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold">Upload Excel File</h2>
+                <p class="text-gray-600 mt-2">Upload your transaction data in Excel format (.xlsx or .xls)</p>
+            </div>
+
+            <form id="uploadForm" class="space-y-6">
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                    <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
+                    <div id="dropZone" class="cursor-pointer" onclick="document.getElementById('fileInput').click()">
+                        <i class="fas fa-cloud-upload-alt text-6xl text-gray-400 mb-4"></i>
+                        <p class="text-lg font-medium text-gray-700">Click to upload or drag and drop</p>
+                        <p class="text-sm text-gray-500 mt-2">Excel files (.xlsx, .xls) up to 100MB</p>
+                    </div>
+                    <div id="fileInfo" class="hidden mt-4">
+                        <div class="flex items-center justify-center">
+                            <i class="fas fa-file-excel text-3xl text-green-600 mr-3"></i>
+                            <div class="text-left">
+                                <p id="fileName" class="font-medium text-gray-700"></p>
+                                <p id="fileSize" class="text-sm text-gray-500"></p>
+                            </div>
+                            <button type="button" onclick="clearFile()" class="ml-4 text-red-600 hover:text-red-800">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"></div>
+                <div id="successMessage" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded"></div>
+
+                <div class="flex space-x-4">
+                    <button type="submit" id="uploadButton" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-200">
+                        <i class="fas fa-upload mr-2"></i>Upload File
+                    </button>
+                    <a href="/uploads" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg text-center transition duration-200">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+
+            <div id="uploadProgress" class="hidden mt-6">
+                <div class="bg-blue-100 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-blue-900">Uploading...</span>
+                        <span id="progressPercent" class="text-sm font-medium text-blue-900">0%</span>
+                    </div>
+                    <div class="w-full bg-blue-200 rounded-full h-2">
+                        <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        document.getElementById('userDisplay').textContent = user.username || 'User';
+
+        let selectedFile = null;
+
+        function logout() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                document.getElementById('dropZone').classList.add('hidden');
+                document.getElementById('fileInfo').classList.remove('hidden');
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileSize').textContent = formatFileSize(file.size);
+            }
+        });
+
+        function clearFile() {
+            selectedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('dropZone').classList.remove('hidden');
+            document.getElementById('fileInfo').classList.add('hidden');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!selectedFile) {
+                showError('Please select a file to upload');
+                return;
+            }
+
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            const uploadButton = document.getElementById('uploadButton');
+            const progressDiv = document.getElementById('uploadProgress');
+
+            errorDiv.classList.add('hidden');
+            successDiv.classList.add('hidden');
+            uploadButton.disabled = true;
+            progressDiv.classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            try {
+                const response = await fetch('/api/v1/uploads', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    successDiv.textContent = 'File uploaded successfully! Redirecting...';
+                    successDiv.classList.remove('hidden');
+                    setTimeout(() => {
+                        window.location.href = '/uploads/' + data.data.session.id;
+                    }, 1500);
+                } else {
+                    showError(data.message || 'Upload failed');
+                    uploadButton.disabled = false;
+                    progressDiv.classList.add('hidden');
+                }
+            } catch (error) {
+                showError('An error occurred: ' + error.message);
+                uploadButton.disabled = false;
+                progressDiv.classList.add('hidden');
+            }
+        });
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

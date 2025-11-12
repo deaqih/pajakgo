@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accounts - Accounting Web</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="/static/shared/pagination.js"></script>
+</head>
+<body class="bg-gray-100">
+    <!-- Navbar -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="text-2xl font-bold text-blue-600">Accounting Web</a>
+                    <span class="text-gray-400">|</span>
+                    <span class="text-gray-600">Accounts</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="userDisplay" class="text-gray-700"></span>
+                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div id="main-content" class="max-w-7xl mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Account Master Data</h2>
+                <div class="flex space-x-2">
+                    <button onclick="downloadTemplate()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded">
+                        <i class="fas fa-file-download mr-2"></i>Template
+                    </button>
+                    <button onclick="exportAccounts()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+                        <i class="fas fa-download mr-2"></i>Export
+                    </button>
+                    <button onclick="showImportModal()" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded">
+                        <i class="fas fa-upload mr-2"></i>Import
+                    </button>
+                    <button onclick="showAddModal()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                        <i class="fas fa-plus mr-2"></i>Add Account
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search and Controls -->
+            <div class="mb-4 flex justify-between items-center">
+                <div class="search-box flex-1 max-w-md"></div>
+                <div class="limit-selector"></div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nature</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Koreksi Obyek</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                                <i class="fas fa-spinner fa-spin mr-2"></i>Loading...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="mt-4 pagination-container"></div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div id="accountModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="text-xl font-bold">Add Account</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            <form id="accountForm" class="space-y-4">
+                <input type="hidden" id="accountId">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Account Code *</label>
+                        <input type="text" id="accountCode" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Account Name *</label>
+                        <input type="text" id="accountName" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
+                        <input type="text" id="accountType"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nature</label>
+                        <select id="nature" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="">Select Nature</option>
+                            <option value="Asset">Asset</option>
+                            <option value="Liability">Liability</option>
+                            <option value="Equity">Equity</option>
+                            <option value="Revenue">Revenue</option>
+                            <option value="Expense">Expense</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Koreksi Obyek</label>
+                        <input type="text" id="koreksiObyek"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Analisa Tambahan</label>
+                        <input type="text" id="analisaTambahan"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="isActive" checked class="mr-2">
+                            <span class="text-sm font-medium text-gray-700">Is Active</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"></div>
+                <div class="flex space-x-2">
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg">
+                        Save
+                    </button>
+                    <button type="button" onclick="closeModal()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 rounded-lg">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Import Accounts</h3>
+                <button onclick="closeImportModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            <form id="importForm">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Upload Excel File</label>
+                    <input type="file" id="importFile" accept=".xlsx,.xls" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <p class="text-xs text-gray-500 mt-2">
+                        Format: Account Code, Account Name, Account Type, Nature, Koreksi Obyek, Analisa Tambahan, Is Active
+                    </p>
+                    <div class="mt-2">
+                        <button type="button" onclick="downloadTemplate()" class="text-blue-600 hover:text-blue-800 text-sm">
+                            <i class="fas fa-download mr-1"></i>Download Template Excel
+                        </button>
+                    </div>
+                </div>
+                <div id="importError" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"></div>
+                <div id="importSuccess" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4"></div>
+                <div class="flex space-x-2">
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg">
+                        Import
+                    </button>
+                    <button type="button" onclick="closeImportModal()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 rounded-lg">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('access_token');
+        if (!token) window.location.href = '/login';
+
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        document.getElementById('userDisplay').textContent = user.username || 'User';
+
+        let allAccounts = [];
+
+        function logout() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+
+        async function loadAccounts(page = 1, limit = 25, search = '') {
+            // Show loading state
+            document.getElementById('tableBody').innerHTML =
+                `<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>Loading...
+                </td></tr>`;
+
+            try {
+                const params = new URLSearchParams({
+                    page: page,
+                    limit: limit,
+                    search: search
+                });
+
+                const response = await fetch(`/api/v1/accounts?${params}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    allAccounts = data.data.accounts || [];
+                    displayAccounts(allAccounts);
+
+                    // Update pagination if available
+                    if (data.data.pagination) {
+                        paginationManager.updateData(data.data.pagination);
+                        // Make sure pagination controls are visible
+                        paginationManager.render();
+                    }
+                } else {
+                    document.getElementById('tableBody').innerHTML =
+                        `<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Failed to load accounts</td></tr>`;
+                }
+            } catch (error) {
+                document.getElementById('tableBody').innerHTML =
+                    `<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">Error: ${error.message}</td></tr>`;
+            }
+        }
+
+        function displayAccounts(accounts) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            if (accounts.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No accounts found</td></tr>`;
+                return;
+            }
+
+            accounts.forEach(account => {
+                const row = `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap font-medium">${safeValue(account.account_code)}</td>
+                        <td class="px-6 py-4">${safeValue(account.account_name)}</td>
+                        <td class="px-6 py-4">${safeValue(account.account_type, '-')}</td>
+                        <td class="px-6 py-4">${safeValue(account.nature, '-')}</td>
+                        <td class="px-6 py-4">${safeValue(account.koreksi_obyek, '-')}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button onclick="editAccount(${account.id})" class="text-blue-600 hover:text-blue-900 mr-3">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteAccount(${account.id})" class="text-red-600 hover:text-red-900">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function safeValue(value, defaultValue = '') {
+            if (value === null || value === undefined || value === 'null' || value === 'undefined') {
+                return defaultValue;
+            }
+            return String(value).trim() || defaultValue;
+        }
+
+        function showAddModal() {
+            document.getElementById('modalTitle').textContent = 'Add Account';
+            document.getElementById('accountForm').reset();
+            document.getElementById('accountId').value = '';
+            document.getElementById('isActive').checked = true;
+            document.getElementById('errorMessage').classList.add('hidden');
+            document.getElementById('accountModal').classList.remove('hidden');
+        }
+
+        async function editAccount(id) {
+            try {
+                const response = await fetch(`/api/v1/accounts/${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const account = data.data;
+                    document.getElementById('modalTitle').textContent = 'Edit Account';
+                    document.getElementById('accountId').value = account.id;
+                    document.getElementById('accountCode').value = safeValue(account.account_code);
+                    document.getElementById('accountName').value = safeValue(account.account_name);
+                    document.getElementById('accountType').value = safeValue(account.account_type);
+                    document.getElementById('nature').value = safeValue(account.nature);
+                    document.getElementById('koreksiObyek').value = safeValue(account.koreksi_obyek);
+                    document.getElementById('analisaTambahan').value = safeValue(account.analisa_tambahan);
+                    document.getElementById('isActive').checked = account.is_active === true || account.is_active === 1;
+                    document.getElementById('errorMessage').classList.add('hidden');
+                    document.getElementById('accountModal').classList.remove('hidden');
+                }
+            } catch (error) {
+                alert('Error loading account: ' + error.message);
+            }
+        }
+
+        async function deleteAccount(id) {
+            if (!confirm('Are you sure you want to delete this account?')) return;
+
+            try {
+                const response = await fetch(`/api/v1/accounts/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Account deleted successfully');
+                    loadAccounts(paginationManager.currentPage, paginationManager.currentLimit, paginationManager.currentSearch);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('accountModal').classList.add('hidden');
+        }
+
+        document.getElementById('accountForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('accountId').value;
+            const payload = {
+                account_code: document.getElementById('accountCode').value,
+                account_name: document.getElementById('accountName').value,
+                account_type: document.getElementById('accountType').value,
+                nature: document.getElementById('nature').value,
+                koreksi_obyek: document.getElementById('koreksiObyek').value,
+                analisa_tambahan: document.getElementById('analisaTambahan').value,
+                is_active: document.getElementById('isActive').checked
+            };
+
+            try {
+                const url = id ? `/api/v1/accounts/${id}` : '/api/v1/accounts';
+                const method = id ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    closeModal();
+                    loadAccounts(paginationManager.currentPage, paginationManager.currentLimit, paginationManager.currentSearch);
+                    alert(id ? 'Account updated successfully' : 'Account created successfully');
+                } else {
+                    document.getElementById('errorMessage').textContent = data.message;
+                    document.getElementById('errorMessage').classList.remove('hidden');
+                }
+            } catch (error) {
+                document.getElementById('errorMessage').textContent = error.message;
+                document.getElementById('errorMessage').classList.remove('hidden');
+            }
+        });
+
+        async function downloadTemplate() {
+            try {
+                const response = await fetch('/api/v1/accounts/template', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'accounts_import_template.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    alert('Failed to download template');
+                }
+            } catch (error) {
+                alert('Error downloading template: ' + error.message);
+            }
+        }
+
+        async function exportAccounts() {
+            try {
+                const response = await fetch('/api/v1/accounts/export', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const filename = `accounts_export_${new Date().toISOString().slice(0,10)}.xlsx`;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    const data = await response.json();
+                    alert('Export failed: ' + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error exporting accounts: ' + error.message);
+            }
+        }
+
+        function showImportModal() {
+            document.getElementById('importForm').reset();
+            document.getElementById('importError').classList.add('hidden');
+            document.getElementById('importSuccess').classList.add('hidden');
+            document.getElementById('importModal').classList.remove('hidden');
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.add('hidden');
+        }
+
+        document.getElementById('importForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('importFile');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                document.getElementById('importError').textContent = 'Please select a file';
+                document.getElementById('importError').classList.remove('hidden');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/v1/accounts/import', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success || (response.status === 206 && data.success)) {
+                    // Handle success or partial success
+                    let successMessage = '';
+                    if (data.error_count > 0) {
+                        successMessage = `Import completed: ${data.total_imported} accounts imported successfully, ${data.error_count} errors found.`;
+
+                        // Show error details
+                        if (data.errors && data.errors.length > 0) {
+                            successMessage += '\\n\\nFirst few errors:';
+                            data.errors.forEach((error, index) => {
+                                successMessage += `\\n${index + 1}. Row ${error.row}: ${error.error}`;
+                            });
+                        }
+
+                        // Show download link for error report
+                        if (data.error_report_path) {
+                            const filename = data.error_report_path.split('\\\\').pop();
+                            successMessage += `\\n\\n📊 Download detailed error report: `;
+                            const downloadLink = document.createElement('a');
+                            downloadLink.href = `/api/v1/accounts/error-report/${filename}`;
+                            downloadLink.textContent = filename;
+                            downloadLink.className = 'text-blue-600 hover:text-blue-800 underline';
+                            downloadLink.download = filename;
+
+                            const successDiv = document.getElementById('importSuccess');
+                            successDiv.innerHTML = successMessage + '<br>';
+                            successDiv.appendChild(downloadLink);
+                            successDiv.classList.remove('hidden');
+                            document.getElementById('importError').classList.add('hidden');
+                            return;
+                        }
+                    } else {
+                        successMessage = `Successfully imported ${data.total_imported} accounts`;
+                    }
+
+                    document.getElementById('importSuccess').textContent = successMessage;
+                    document.getElementById('importSuccess').classList.remove('hidden');
+                    document.getElementById('importError').classList.add('hidden');
+
+                    setTimeout(() => {
+                        closeImportModal();
+                        loadAccounts(1, paginationManager.currentLimit, '');
+                    }, 3000);
+                } else {
+                    // Handle complete failure
+                    let errorMessage = data.message || 'Import failed';
+
+                    // Show error details if available
+                    if (data.errors && data.errors.length > 0) {
+                        errorMessage += '\\n\\nError details:';
+                        data.errors.slice(0, 5).forEach((error, index) => {
+                            errorMessage += `\\n${index + 1}. Row ${error.row}: ${error.error}`;
+                        });
+
+                        if (data.errors.length > 5) {
+                            errorMessage += `\\n... and ${data.errors.length - 5} more errors`;
+                        }
+                    }
+
+                    // Show download link for error report
+                    if (data.error_report_path) {
+                        const filename = data.error_report_path.split('\\\\').pop();
+                        errorMessage += `\\n\\n📊 Download detailed error report: `;
+                        const errorDiv = document.getElementById('importError');
+                        errorDiv.innerHTML = errorMessage + '<br>';
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = `/api/v1/accounts/error-report/${filename}`;
+                        downloadLink.textContent = filename;
+                        downloadLink.className = 'text-blue-600 hover:text-blue-800 underline';
+                        downloadLink.download = filename;
+                        errorDiv.appendChild(downloadLink);
+                    } else {
+                        document.getElementById('importError').textContent = errorMessage;
+                    }
+
+                    document.getElementById('importError').classList.remove('hidden');
+                    document.getElementById('importSuccess').classList.add('hidden');
+                }
+            } catch (error) {
+                document.getElementById('importError').textContent = 'Error: ' + error.message;
+                document.getElementById('importError').classList.remove('hidden');
+                document.getElementById('importSuccess').classList.add('hidden');
+            }
+        });
+
+        // Initialize pagination manager
+        let paginationManager;
+        let isInitialized = false;
+
+        function initializeApp() {
+            if (isInitialized) return;
+            isInitialized = true;
+
+            paginationManager = new PaginationManager({
+                defaultLimit: 25,
+                limitOptions: [10, 25, 50, 100],
+                onPageChange: (page, limit, search) => loadAccounts(page, limit, search),
+                onLimitChange: (page, limit, search) => loadAccounts(page, limit, search),
+                onSearchChange: (page, limit, search) => loadAccounts(page, limit, search)
+            });
+
+            // Initialize pagination components (main container is the div with class max-w-7xl)
+            paginationManager.init('main-content');
+
+            // Load initial data
+            loadAccounts();
+        }
+
+        // Load data on page load
+        if (document.readyState === 'loading') {
+            // DOM not ready yet, wait for DOMContentLoaded
+            document.addEventListener('DOMContentLoaded', () => {
+                initializeApp();
+            });
+        } else {
+            // DOM already loaded, initialize now
+            initializeApp();
+        }
+    </script>
+</body>
+</html>
