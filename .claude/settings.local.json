@@ -18,7 +18,9 @@
       "Bash(views/master/obyek-rules.html)",
       "Bash(git init:*)",
       "Bash(git remote add:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git pull:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
