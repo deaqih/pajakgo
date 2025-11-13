@@ -154,6 +154,100 @@ func (s *ExcelService) ExportTransactions(transactions []models.TransactionData,
 	return f.SaveAs(outputPath)
 }
 
+// GenerateTransactionTemplate creates a template Excel file for transaction upload
+func (s *ExcelService) GenerateTransactionTemplate(outputPath string) error {
+	f := excelize.NewFile()
+	defer f.Close()
+
+	sheetName := "Transaction Data"
+	index, err := f.NewSheet(sheetName)
+	if err != nil {
+		return err
+	}
+
+	// Set headers
+	headers := []string{
+		"Document Type", "Document Number", "Posting Date", "Account",
+		"Account Name", "Keterangan", "Debet", "Credit", "Net",
+	}
+
+	// Write headers
+	for i, header := range headers {
+		cell := fmt.Sprintf("%s1", getColumnName(i))
+		f.SetCellValue(sheetName, cell, header)
+	}
+
+	// Set header style
+	headerStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"#E0E0E0"}, Pattern: 1},
+	})
+	f.SetCellStyle(sheetName, "A1", fmt.Sprintf("%s1", getColumnName(len(headers)-1)), headerStyle)
+
+	// Add sample data
+	sampleData := [][]interface{}{
+		{"Invoice", "INV-001", "2024-01-15", "6101", "Penjualan Barang", "Penjualan laptop", 0, 12000000, 12000000},
+		{"Invoice", "INV-002", "2024-01-16", "1101", "Kas", "Pembayaran tunai", 5000000, 0, 5000000},
+		{"Payment", "PAY-001", "2024-01-17", "2101", "Hutang Usaha", "Pembayaran supplier", 3000000, 0, 3000000},
+		{"Journal", "JRNL-001", "2024-01-18", "5101", "Beban Gaji", "Gaji karyawan Januari", 8000000, 0, 8000000},
+		{"Receipt", "RCT-001", "2024-01-19", "4101", "Pendapatan Jasa", "Pendapatan konsultasi", 0, 7500000, 7500000},
+	}
+
+	// Write sample data
+	for rowIdx, rowData := range sampleData {
+		row := rowIdx + 2
+		for colIdx, value := range rowData {
+			cell := fmt.Sprintf("%s%d", getColumnName(colIdx), row)
+			f.SetCellValue(sheetName, cell, value)
+		}
+	}
+
+	// Set column widths
+	f.SetColWidth(sheetName, "A", "A", 15)
+	f.SetColWidth(sheetName, "B", "B", 20)
+	f.SetColWidth(sheetName, "C", "C", 15)
+	f.SetColWidth(sheetName, "D", "D", 15)
+	f.SetColWidth(sheetName, "E", "E", 30)
+	f.SetColWidth(sheetName, "F", "F", 25)
+	f.SetColWidth(sheetName, "G", "G", 15)
+	f.SetColWidth(sheetName, "H", "H", 15)
+	f.SetColWidth(sheetName, "I", "I", 15)
+
+	// Add instructions
+	instructionsStartRow := len(sampleData) + 4
+	instructions := []string{
+		"Instructions:",
+		"1. Document Type: Type of document (Invoice, Payment, Journal, Receipt, etc.)",
+		"2. Document Number: Unique document identifier",
+		"3. Posting Date: Date of transaction (YYYY-MM-DD format)",
+		"4. Account: Account code (must match existing accounts)",
+		"5. Account Name: Description of the account",
+		"6. Keterangan: Description of the transaction",
+		"7. Debet: Debit amount (0 if credit transaction)",
+		"8. Credit: Credit amount (0 if debit transaction)",
+		"9. Net: Net amount (should equal Debet - Credit)",
+		"",
+		"Note: Do not modify the header row. Fill data starting from row 2.",
+	}
+
+	for i, instruction := range instructions {
+		cell := fmt.Sprintf("A%d", instructionsStartRow + i)
+		f.SetCellValue(sheetName, cell, instruction)
+	}
+
+	// Style instructions
+	instructionStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true, Size: 10},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"#F0F8FF"}, Pattern: 1},
+	})
+	f.SetCellStyle(sheetName, fmt.Sprintf("A%d", instructionsStartRow), fmt.Sprintf("A%d", instructionsStartRow), instructionStyle)
+
+	f.SetActiveSheet(index)
+	f.DeleteSheet("Sheet1")
+
+	return f.SaveAs(outputPath)
+}
+
 // Helper functions
 func getCellValue(row []string, index int) string {
 	if index < len(row) {

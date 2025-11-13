@@ -91,21 +91,28 @@ func (e *ProcessingEngine) ProcessTransaction(tx *models.TransactionData) error 
 
 	// STEP 1: Analisa Nature Akun
 	if account, exists := e.accounts[tx.Account]; exists {
-		tx.AnalisaNatureAkun = account.Nature
+		tx.AnalisaNatureAkun = &account.Nature
 	}
 
 	// STEP 2: Koreksi - Match keterangan with koreksi_rules
-	tx.Koreksi = e.matchKoreksiRule(keterangan)
+	koreksiValue := e.matchKoreksiRule(keterangan)
+	if koreksiValue != "" {
+		tx.Koreksi = &koreksiValue
+	}
 
 	// STEP 3: Obyek - Match keterangan with obyek_rules
-	tx.Obyek = e.matchObyekRule(keterangan)
+	obyekValue := e.matchObyekRule(keterangan)
+	if obyekValue != "" {
+		tx.Obyek = &obyekValue
+	}
 
 	// STEP 4: Analisa Koreksi - Obyek
-	if tx.Koreksi != "" && tx.Obyek != "" {
-		tx.AnalisaKoreksiObyek = fmt.Sprintf("%s - %s", tx.Koreksi, tx.Obyek)
-	} else if tx.Koreksi != "" {
+	if (tx.Koreksi != nil && *tx.Koreksi != "") && (tx.Obyek != nil && *tx.Obyek != "") {
+		combinedValue := fmt.Sprintf("%s - %s", *tx.Koreksi, *tx.Obyek)
+		tx.AnalisaKoreksiObyek = &combinedValue
+	} else if tx.Koreksi != nil && *tx.Koreksi != "" {
 		tx.AnalisaKoreksiObyek = tx.Koreksi
-	} else if tx.Obyek != "" {
+	} else if tx.Obyek != nil && *tx.Obyek != "" {
 		tx.AnalisaKoreksiObyek = tx.Obyek
 	}
 
@@ -119,10 +126,12 @@ func (e *ProcessingEngine) ProcessTransaction(tx *models.TransactionData) error 
 	e.calculateOutputTax(tx, keterangan)
 
 	// STEP 8: UM Pajak DB (TBD - not implemented yet)
-	tx.UmPajakDB = 0
+	umPajakDBValue := 0.0
+	tx.UmPajakDB = &umPajakDBValue
 
 	// STEP 9: Analisa Tambahan (TBD - not implemented yet)
-	tx.AnalisaTambahan = ""
+	analisaTambahanValue := ""
+	tx.AnalisaTambahan = &analisaTambahanValue
 
 	// Mark as processed
 	tx.IsProcessed = true
@@ -166,15 +175,15 @@ func (e *ProcessingEngine) calculateWithholdingTax(tx *models.TransactionData, k
 
 			switch rule.TaxType {
 			case "wth_21":
-				tx.Wth21Cr = amount
+				tx.Wth21Cr = &amount
 			case "wth_23":
-				tx.Wth23Cr = amount
+				tx.Wth23Cr = &amount
 			case "wth_26":
-				tx.Wth26Cr = amount
+				tx.Wth26Cr = &amount
 			case "wth_4_2":
-				tx.Wth42Cr = amount
+				tx.Wth42Cr = &amount
 			case "wth_15":
-				tx.Wth15Cr = amount
+				tx.Wth15Cr = &amount
 			}
 		}
 	}
@@ -183,7 +192,8 @@ func (e *ProcessingEngine) calculateWithholdingTax(tx *models.TransactionData, k
 // calculateInputTax calculates PM DB (Input Tax)
 func (e *ProcessingEngine) calculateInputTax(tx *models.TransactionData, keterangan string) {
 	if tx.Debet <= 0 {
-		tx.PmDB = 0
+		pmDBValue := 0.0
+		tx.PmDB = &pmDBValue
 		return
 	}
 
@@ -191,18 +201,21 @@ func (e *ProcessingEngine) calculateInputTax(tx *models.TransactionData, keteran
 	for _, keyword := range e.inputTaxKeywords {
 		keywordLower := strings.ToLower(keyword)
 		if strings.Contains(keterangan, keywordLower) {
-			tx.PmDB = tx.Debet
+			pmDBValue := tx.Debet
+			tx.PmDB = &pmDBValue
 			return
 		}
 	}
 
-	tx.PmDB = 0
+	pmDBValue := 0.0
+	tx.PmDB = &pmDBValue
 }
 
 // calculateOutputTax calculates PK CR (Output Tax)
 func (e *ProcessingEngine) calculateOutputTax(tx *models.TransactionData, keterangan string) {
 	if tx.Credit <= 0 {
-		tx.PkCr = 0
+		pkCrValue := 0.0
+		tx.PkCr = &pkCrValue
 		return
 	}
 
@@ -210,12 +223,14 @@ func (e *ProcessingEngine) calculateOutputTax(tx *models.TransactionData, ketera
 	for _, keyword := range e.outputTaxKeywords {
 		keywordLower := strings.ToLower(keyword)
 		if strings.Contains(keterangan, keywordLower) {
-			tx.PkCr = tx.Credit
+			pkCrValue := tx.Credit
+			tx.PkCr = &pkCrValue
 			return
 		}
 	}
 
-	tx.PkCr = 0
+	pkCrValue := 0.0
+	tx.PkCr = &pkCrValue
 }
 
 // ProcessBatch processes a batch of transactions
@@ -230,7 +245,8 @@ func (e *ProcessingEngine) ProcessBatch(transactions []models.TransactionData) e
 	// Process each transaction
 	for i := range transactions {
 		if err := e.ProcessTransaction(&transactions[i]); err != nil {
-			transactions[i].ProcessingError = err.Error()
+			errMsg := err.Error()
+			transactions[i].ProcessingError = &errMsg
 			continue
 		}
 	}

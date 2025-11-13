@@ -571,7 +571,7 @@
             isInitialized = true;
 
             paginationManager = new PaginationManager({
-                defaultLimit: 25,
+                defaultLimit: 10,
                 limitOptions: [10, 25, 50, 100],
                 onPageChange: (page, limit, search) => loadAccounts(page, limit, search),
                 onLimitChange: (page, limit, search) => loadAccounts(page, limit, search),
