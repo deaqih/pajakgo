@@ -206,17 +206,23 @@ func (h *UploadHandler) UploadMultipleFiles(c *fiber.Ctx) error {
 			Status:      status,
 		}
 
+		fmt.Printf("Creating upload session for session_code: %s, user_id: %d\n", sessionCode, userID)
 		err = h.uploadRepo.CreateSession(session)
 		if err != nil {
 			// Log error but don't fail the upload - transactions are already saved
-			fmt.Printf("Warning: Failed to create upload session record: %v\n", err)
-		}
+			fmt.Printf("ERROR: Failed to create upload session record: %v\n", err)
+		} else {
+			fmt.Printf("SUCCESS: Created upload session with ID: %d\n", session.ID)
 
-		// Now update transactions with the actual session_id
-		err = h.uploadRepo.UpdateTransactionsSessionID(sessionCode, session.ID)
-		if err != nil {
-			// Log error but don't fail the upload
-			fmt.Printf("Warning: Failed to update transactions with session_id: %v\n", err)
+			// Now update transactions with the actual session_id
+			fmt.Printf("Updating transactions session_id for session_code: %s -> session_id: %d\n", sessionCode, session.ID)
+			err = h.uploadRepo.UpdateTransactionsSessionID(sessionCode, session.ID)
+			if err != nil {
+				// Log error but don't fail the upload
+				fmt.Printf("ERROR: Failed to update transactions with session_id: %v\n", err)
+			} else {
+				fmt.Printf("SUCCESS: Updated transactions with session_id: %d\n", session.ID)
+			}
 		}
 	}
 

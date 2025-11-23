@@ -91,7 +91,7 @@ func (r *UploadRepository) GetBatchUploads(limit, offset int, userID int) ([]mod
 
 	// Count unique session codes
 	countQuery := `
-		SELECT COUNT(DISTINCT session_code)
+		SELECT COUNT(DISTINCT t.session_code)
 		FROM transaction_data t
 		LEFT JOIN upload_sessions s ON t.session_id = s.id
 		` + whereClause
