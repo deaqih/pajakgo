@@ -91,6 +91,24 @@ func (r *UploadRepository) UpdateSessionStatus(id int, status string) error {
 }
 
 // Transaction Data
+func (r *UploadRepository) CreateMultipleTransactions(transactions []models.TransactionData) error {
+	if len(transactions) == 0 {
+		return nil
+	}
+
+	// Handle bulk insert for transactions without session_id (batch upload)
+	// Use NULL for session_id and session_code for batch identification
+	query := `INSERT INTO transaction_data (session_id, session_code, user_id, file_path, filename,
+	          document_type, document_number, posting_date, account, account_name,
+	          keterangan, debet, credit, net)
+	          VALUES (NULL, :session_code, :user_id, :file_path, :filename,
+	          :document_type, :document_number, :posting_date, :account, :account_name,
+	          :keterangan, :debet, :credit, :net)`
+
+	_, err := r.db.NamedExec(query, transactions)
+	return err
+}
+
 func (r *UploadRepository) BulkInsertTransactions(transactions []models.TransactionData) error {
 	if len(transactions) == 0 {
 		return nil
@@ -159,24 +177,61 @@ func (r *UploadRepository) BulkUpdateTransactions(transactions []models.Transact
 		return nil
 	}
 
-	query := `UPDATE transaction_data SET
-	          analisa_nature_akun = :analisa_nature_akun,
-	          analisa_koreksi_obyek = :analisa_koreksi_obyek,
-	          koreksi = :koreksi,
-	          obyek = :obyek,
-	          um_pajak_db = :um_pajak_db,
-	          pm_db = :pm_db,
-	          wth_21_cr = :wth_21_cr,
-	          wth_23_cr = :wth_23_cr,
-	          wth_26_cr = :wth_26_cr,
-	          wth_4_2_cr = :wth_4_2_cr,
-	          wth_15_cr = :wth_15_cr,
-	          pk_cr = :pk_cr,
-	          analisa_tambahan = :analisa_tambahan,
-	          is_processed = :is_processed,
-	          processing_error = :processing_error
-	          WHERE id = :id`
+	// Update each transaction individually to handle NullableNumericFloat64 properly
+	for _, tx := range transactions {
+		query := `UPDATE transaction_data SET
+		          analisa_nature_akun = ?,
+		          analisa_koreksi_obyek = ?,
+		          koreksi = ?,
+		          obyek = ?,
+		          um_pajak_db = ?,
+		          pm_db = ?,
+		          wth_21_cr = ?,
+		          wth_23_cr = ?,
+		          wth_26_cr = ?,
+		          wth_4_2_cr = ?,
+		          wth_15_cr = ?,
+		          pk_cr = ?,
+		          analisa_tambahan = ?,
+		          is_processed = ?,
+		          processing_error = ?
+		          WHERE id = ?`
 
-	_, err := r.db.NamedExec(query, transactions)
+		_, err := r.db.Exec(query,
+			tx.AnalisaNatureAkun,
+			tx.AnalisaKoreksiObyek,
+			tx.Koreksi,
+			tx.Obyek,
+			tx.UmPajakDB,
+			tx.PmDB,
+			tx.Wth21Cr,
+			tx.Wth23Cr,
+			tx.Wth26Cr,
+			tx.Wth42Cr,
+			tx.Wth15Cr,
+			tx.PkCr,
+			tx.AnalisaTambahan,
+			tx.IsProcessed,
+			tx.ProcessingError,
+			tx.ID,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Delete operations
+func (r *UploadRepository) DeleteSession(id int) error {
+	query := "DELETE FROM upload_sessions WHERE id = ?"
+	_, err := r.db.Exec(query, id)
+	return err
+}
+
+func (r *UploadRepository) DeleteTransactionsBySession(sessionID int) error {
+	query := "DELETE FROM transaction_data WHERE session_id = ?"
+	_, err := r.db.Exec(query, sessionID)
 	return err
 }

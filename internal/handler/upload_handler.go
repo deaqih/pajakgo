@@ -38,8 +38,186 @@ func NewUploadHandler(
 	}
 }
 
+func (h *UploadHandler) UploadMultipleFiles(c *fiber.Ctx) error {
+	// Get user ID with type assertion safety
+	userIDInterface := c.Locals("user_id")
+	if userIDInterface == nil {
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "User not authenticated", nil)
+	}
+
+	var userID int
+	switch v := userIDInterface.(type) {
+	case int:
+		userID = v
+	case float64:
+		userID = int(v)
+	case string:
+		// Try to parse string to int
+		if id, err := strconv.Atoi(v); err == nil {
+			userID = id
+		} else {
+			return utils.ErrorResponse(c, fiber.StatusUnauthorized, "Invalid user ID format", nil)
+		}
+	default:
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "Invalid user ID type", nil)
+	}
+
+	// Get multipart form
+	form, err := c.MultipartForm()
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Failed to parse multipart form", err)
+	}
+
+	// Get files from form
+	files := form.File["files"]
+	if len(files) == 0 {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "No files selected", nil)
+	}
+
+	// Validate file count limit (20 files)
+	const MAX_FILES = 20
+	if len(files) > MAX_FILES {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, fmt.Sprintf("Maximum %d files allowed per upload", MAX_FILES), nil)
+	}
+
+	// Validate total size limit (500MB)
+	const MAX_TOTAL_SIZE = 500 * 1024 * 1024
+	var totalSize int64
+	for _, file := range files {
+		totalSize += file.Size
+	}
+
+	if totalSize > MAX_TOTAL_SIZE {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, fmt.Sprintf("Total size exceeds maximum limit of %s", formatFileSize(MAX_TOTAL_SIZE)), nil)
+	}
+
+	// Create upload session
+	sessionCode := fmt.Sprintf("BATCH-%s", uuid.New().String()[:8])
+	var uploadResults []map[string]interface{}
+
+	// Process each file
+	for i, file := range files {
+		// Validate file type
+		ext := filepath.Ext(file.Filename)
+		if ext != ".xlsx" && ext != ".xls" {
+			uploadResults = append(uploadResults, map[string]interface{}{
+				"filename": file.Filename,
+				"success":  false,
+				"error":    "Only Excel files (.xlsx, .xls) are allowed",
+			})
+			continue
+		}
+
+		// Validate individual file size
+		if file.Size > int64(h.cfg.UploadMaxSize) {
+			uploadResults = append(uploadResults, map[string]interface{}{
+				"filename": file.Filename,
+				"success":  false,
+				"error":    "File size exceeds maximum limit",
+			})
+			continue
+		}
+
+		// Save file with unique name to avoid conflicts
+		filePath := filepath.Join(h.cfg.UploadPath, fmt.Sprintf("%s_%d%s", sessionCode, i+1, ext))
+		if err := c.SaveFile(file, filePath); err != nil {
+			uploadResults = append(uploadResults, map[string]interface{}{
+				"filename": file.Filename,
+				"success":  false,
+				"error":    "Failed to save file",
+			})
+			continue
+		}
+
+		// Parse Excel file
+		fmt.Printf("Starting to parse file: %s (size: %d bytes)\n", file.Filename, file.Size)
+		startTime := time.Now()
+
+		transactions, err := h.excelService.ParseTransactionFile(filePath)
+		if err != nil {
+			uploadResults = append(uploadResults, map[string]interface{}{
+				"filename": file.Filename,
+				"success":  false,
+				"error":    fmt.Sprintf("Failed to parse Excel file: %v", err),
+			})
+			continue
+		}
+
+		parseTime := time.Since(startTime)
+		fmt.Printf("Parsed %d rows in %v\n", len(transactions), parseTime)
+
+		// Save to database
+		for _, transaction := range transactions {
+			transaction.SessionCode = sessionCode
+			transaction.UserID = userID
+			transaction.FilePath = filePath
+			transaction.Filename = file.Filename
+		}
+
+		err = h.uploadRepo.CreateMultipleTransactions(transactions)
+		if err != nil {
+			uploadResults = append(uploadResults, map[string]interface{}{
+				"filename": file.Filename,
+				"success": false,
+				"error":    fmt.Sprintf("Failed to save transactions: %v", err),
+			})
+			continue
+		}
+
+		uploadResults = append(uploadResults, map[string]interface{}{
+			"filename": file.Filename,
+			"success":  true,
+			"rows":     len(transactions),
+			"size":     file.Size,
+			"parse_time": parseTime.String(),
+		})
+	}
+
+	// Calculate statistics
+	totalRows := 0
+	totalFiles := 0
+	totalErrors := 0
+	for _, result := range uploadResults {
+		if result["success"].(bool) {
+			totalRows += result["rows"].(int)
+			totalFiles++
+		} else {
+			totalErrors++
+		}
+	}
+
+	return utils.SuccessResponse(c, "Files uploaded successfully", fiber.Map{
+		"session_code":   sessionCode,
+		"total_files":   totalFiles,
+		"total_errors":   totalErrors,
+		"total_rows":    totalRows,
+		"upload_results": uploadResults,
+	})
+}
+
 func (h *UploadHandler) UploadFile(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(int)
+	// Get user ID with type assertion safety
+	userIDInterface := c.Locals("user_id")
+	if userIDInterface == nil {
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "User not authenticated", nil)
+	}
+
+	var userID int
+	switch v := userIDInterface.(type) {
+	case int:
+		userID = v
+	case float64:
+		userID = int(v)
+	case string:
+		// Try to parse string to int
+		if id, err := strconv.Atoi(v); err == nil {
+			userID = id
+		} else {
+			return utils.ErrorResponse(c, fiber.StatusUnauthorized, "Invalid user ID format", nil)
+		}
+	default:
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "Invalid user ID type", nil)
+	}
 
 	// Get uploaded file
 	file, err := c.FormFile("file")
@@ -68,10 +246,16 @@ func (h *UploadHandler) UploadFile(c *fiber.Ctx) error {
 	}
 
 	// Parse Excel file
+	fmt.Printf("Starting to parse file: %s (size: %d bytes)\n", file.Filename, file.Size)
+	startTime := time.Now()
+
 	transactions, err := h.excelService.ParseTransactionFile(filePath)
 	if err != nil {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Failed to parse Excel file", err)
 	}
+
+	parseTime := time.Since(startTime)
+	fmt.Printf("Parsed %d rows in %v\n", len(transactions), parseTime)
 
 	// Create upload session
 	session := &models.UploadSession{
@@ -109,12 +293,39 @@ func (h *UploadHandler) UploadFile(c *fiber.Ctx) error {
 		"session":     session,
 		"total_rows":  len(transactions),
 		"preview":     getPreview(transactions, 10),
+		"file_size":   file.Size,
+		"processing_time": "completed",
 	})
 }
 
 func (h *UploadHandler) GetSessions(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(int)
-	role := c.Locals("role").(string)
+	// Get user ID and role with type assertion safety
+	userIDInterface := c.Locals("user_id")
+	if userIDInterface == nil {
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "User not authenticated", nil)
+	}
+
+	var userID int
+	switch v := userIDInterface.(type) {
+	case int:
+		userID = v
+	case float64:
+		userID = int(v)
+	case string:
+		if id, err := strconv.Atoi(v); err == nil {
+			userID = id
+		} else {
+			return utils.ErrorResponse(c, fiber.StatusUnauthorized, "Invalid user ID format", nil)
+		}
+	default:
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "Invalid user ID type", nil)
+	}
+
+	roleInterface := c.Locals("role")
+	var role string
+	if roleInterface != nil {
+		role = fmt.Sprintf("%v", roleInterface)
+	}
 
 	// Get pagination parameters
 	params := utils.GetPaginationParams(c)
@@ -227,6 +438,106 @@ func (h *UploadHandler) ProcessSession(c *fiber.Ctx) error {
 	})
 }
 
+func (h *UploadHandler) CancelSession(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid session ID", err)
+	}
+
+	// Get session
+	session, err := h.uploadRepo.GetSessionByID(id)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusNotFound, "Session not found", err)
+	}
+
+	// Check if session can be canceled
+	if session.Status != "processing" {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Only processing sessions can be canceled", nil)
+	}
+
+	// Update status to canceled
+	if err := h.uploadRepo.UpdateSessionStatus(id, "canceled"); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update session status", err)
+	}
+
+	// Cancel active jobs in Asynq
+	if h.asynqClient != nil {
+		// Create inspector to check and cancel jobs
+		inspector := asynq.NewInspector(asynq.RedisClientOpt{
+			Addr:     h.cfg.AsynqRedisAddr,
+			Password: h.cfg.AsynqRedisPassword,
+			DB:       h.cfg.AsynqRedisDB,
+		})
+
+		// Get active queues - simplified approach
+		// For now, we'll just mark the session as canceled
+		// The worker will check the session status before processing
+		_ = inspector
+	}
+
+	return utils.SuccessResponse(c, "Processing canceled successfully", fiber.Map{
+		"session": session,
+	})
+}
+
+func (h *UploadHandler) DeleteSession(c *fiber.Ctx) error {
+	// Get user ID and role with type assertion safety
+	userIDInterface := c.Locals("user_id")
+	if userIDInterface == nil {
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "User not authenticated", nil)
+	}
+
+	var userID int
+	switch v := userIDInterface.(type) {
+	case int:
+		userID = v
+	case float64:
+		userID = int(v)
+	case string:
+		if id, err := strconv.Atoi(v); err == nil {
+			userID = id
+		} else {
+			return utils.ErrorResponse(c, fiber.StatusUnauthorized, "Invalid user ID format", nil)
+		}
+	default:
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "Invalid user ID type", nil)
+	}
+
+	roleInterface := c.Locals("role")
+	var role string
+	if roleInterface != nil {
+		role = fmt.Sprintf("%v", roleInterface)
+	}
+
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid session ID", err)
+	}
+
+	// Get session to verify ownership or admin rights
+	session, err := h.uploadRepo.GetSessionByID(id)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusNotFound, "Session not found", err)
+	}
+
+	// Check if user can delete this session
+	if role != "admin" && session.UserID != userID {
+		return utils.ErrorResponse(c, fiber.StatusForbidden, "You can only delete your own sessions", nil)
+	}
+
+	// Delete transactions first (due to foreign key constraint)
+	if err := h.uploadRepo.DeleteTransactionsBySession(id); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to delete transactions", err)
+	}
+
+	// Delete the session
+	if err := h.uploadRepo.DeleteSession(id); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to delete session", err)
+	}
+
+	return utils.SuccessResponse(c, "Session deleted successfully", nil)
+}
+
 func (h *UploadHandler) DownloadTemplate(c *fiber.Ctx) error {
 	// Generate template filename
 	templateFileName := "transaction_upload_template.xlsx"
@@ -276,4 +587,17 @@ func getPreview(transactions []models.TransactionData, limit int) []models.Trans
 		return transactions[:limit]
 	}
 	return transactions
+}
+
+func formatFileSize(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
