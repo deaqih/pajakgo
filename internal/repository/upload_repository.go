@@ -178,9 +178,37 @@ func (r *UploadRepository) CreateMultipleTransactions(transactions []models.Tran
 
 // UpdateTransactionsSessionID updates session_id for transactions with given session_code
 func (r *UploadRepository) UpdateTransactionsSessionID(sessionCode string, sessionID int) error {
+	// First check how many records will be updated
+	var countBefore int
+	checkQuery := `SELECT COUNT(*) FROM transaction_data WHERE session_code = ? AND session_id = 0`
+	err := r.db.Get(&countBefore, checkQuery, sessionCode)
+	if err != nil {
+		fmt.Printf("DEBUG: Error checking update count: %v\n", err)
+		return err
+	}
+	fmt.Printf("DEBUG: Found %d records to update with session_code: %s\n", countBefore, sessionCode)
+
 	query := `UPDATE transaction_data SET session_id = ? WHERE session_code = ? AND session_id = 0`
-	_, err := r.db.Exec(query, sessionID, sessionCode)
-	return err
+	result, err := r.db.Exec(query, sessionID, sessionCode)
+	if err != nil {
+		fmt.Printf("DEBUG: Error updating transactions: %v\n", err)
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	fmt.Printf("DEBUG: Updated %d rows with session_id: %d for session_code: %s\n", rowsAffected, sessionID, sessionCode)
+
+	// Verify the update
+	var countAfter int
+	verifyQuery := `SELECT COUNT(*) FROM transaction_data WHERE session_code = ? AND session_id = ?`
+	err = r.db.Get(&countAfter, verifyQuery, sessionCode, sessionID)
+	if err != nil {
+		fmt.Printf("DEBUG: Error verifying update: %v\n", err)
+		return err
+	}
+	fmt.Printf("DEBUG: Verified %d records now have session_id: %d for session_code: %s\n", countAfter, sessionID, sessionCode)
+
+	return nil
 }
 
 func (r *UploadRepository) BulkInsertTransactions(transactions []models.TransactionData) error {
