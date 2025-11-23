@@ -6,6 +6,7 @@ import (
 	"accounting-web/internal/middleware"
 	"accounting-web/internal/repository"
 	"accounting-web/internal/service"
+	"accounting-web/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/hibiken/asynq"
@@ -24,10 +25,12 @@ func SetupAPIRoutes(
 	accountRepo := repository.NewAccountRepository(db)
 	uploadRepo := repository.NewUploadRepository(db)
 	rulesRepo := repository.NewRulesRepository(db)
+	additionalAnalysisRepo := repository.NewAdditionalAnalysisRepository(db)
 
 	// Initialize services
 	authService := service.NewAuthService(userRepo, cfg)
 	excelService := service.NewExcelService()
+	additionalAnalysisService := service.NewAdditionalAnalysisService(additionalAnalysisRepo, accountRepo, utils.GetLogger())
 
 	// Initialize Asynq client (optional - only if Redis is available)
 	var asynqClient *asynq.Client
@@ -46,6 +49,7 @@ func SetupAPIRoutes(
 	koreksiRuleHandler := handler.NewKoreksiRuleHandler(rulesRepo)
 	obyekRuleHandler := handler.NewObyekRuleHandler(rulesRepo)
 	ruleHandler := handler.NewGenericRuleHandler()
+	additionalAnalysisHandler := handler.NewAdditionalAnalysisHandler(additionalAnalysisService)
 
 	// Public routes
 	auth := router.Group("/auth")
@@ -83,6 +87,20 @@ func SetupAPIRoutes(
 	accounts.Post("/", accountHandler.CreateAccount)
 	accounts.Put("/:id", accountHandler.UpdateAccount)
 	accounts.Delete("/:id", accountHandler.DeleteAccount)
+
+	// Additional Analysis routes
+	additionalAnalysis := protected.Group("/additional-analyses")
+	additionalAnalysis.Get("/", additionalAnalysisHandler.GetAll)
+	additionalAnalysis.Get("/export", additionalAnalysisHandler.ExportToExcel)
+	additionalAnalysis.Get("/template", additionalAnalysisHandler.DownloadTemplate)
+	additionalAnalysis.Get("/types", additionalAnalysisHandler.GetAnalysisTypes)
+	additionalAnalysis.Post("/import", additionalAnalysisHandler.ImportFromExcel)
+	additionalAnalysis.Get("/:id", additionalAnalysisHandler.GetByID)
+	additionalAnalysis.Post("/", additionalAnalysisHandler.Create)
+	additionalAnalysis.Put("/:id", additionalAnalysisHandler.Update)
+	additionalAnalysis.Delete("/:id", additionalAnalysisHandler.Delete)
+	additionalAnalysis.Delete("/:id/hard", additionalAnalysisHandler.HardDelete)
+	additionalAnalysis.Get("/account/:accountCode", additionalAnalysisHandler.GetByAccountCode)
 
 	// Koreksi Rules routes
 	koreksi := protected.Group("/koreksi-rules")
@@ -125,12 +143,15 @@ func SetupAPIRoutes(
 	// Upload routes
 	uploads := protected.Group("/uploads")
 	uploads.Post("/", uploadHandler.UploadFile)
+	uploads.Post("/multiple", uploadHandler.UploadMultipleFiles)
 	uploads.Get("/", uploadHandler.GetSessions)
 	uploads.Get("/template", uploadHandler.DownloadTemplate)
 	uploads.Get("/:id", uploadHandler.GetSessionDetail)
 	uploads.Get("/:id/transactions", uploadHandler.GetTransactions)
 	uploads.Post("/:id/process", uploadHandler.ProcessSession)
+	uploads.Post("/:id/cancel", uploadHandler.CancelSession)
 	uploads.Get("/:id/export", uploadHandler.ExportSession)
+	uploads.Delete("/:id", uploadHandler.DeleteSession)
 
 	// Job progress routes
 	jobs := protected.Group("/jobs")
