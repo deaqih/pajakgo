@@ -337,15 +337,54 @@ func (h *UploadHandler) GetSessions(c *fiber.Ctx) error {
 		filterUserID = userID
 	}
 
-	sessions, total, err := h.uploadRepo.GetSessions(params.Limit, offset, filterUserID)
+	// Get regular upload sessions
+	var regularSessions []models.UploadSession
+	var batchSessions []models.BatchUploadSession
+	var totalRegular, totalBatch int
+	var err error
+
+	regularSessions, totalRegular, err = h.uploadRepo.GetSessions(params.Limit, offset, filterUserID)
 	if err != nil {
-		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve sessions", err)
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve regular sessions", err)
 	}
 
-	pagination := utils.CalculatePagination(params.Page, params.Limit, int64(total))
+	// Get batch upload sessions (from transaction_data with session_id = 0)
+	batchSessions, totalBatch, err = h.uploadRepo.GetBatchUploads(params.Limit, offset, filterUserID)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve batch sessions", err)
+	}
+
+	// Combine sessions for response
+	var allSessions []interface{}
+	for _, session := range regularSessions {
+		sessionMap := map[string]interface{}{
+			"id":             session.ID,
+			"session_code":   session.SessionCode,
+			"user_id":        session.UserID,
+			"filename":       session.Filename,
+			"file_path":      session.FilePath,
+			"total_rows":     session.TotalRows,
+			"processed_rows": session.ProcessedRows,
+			"failed_rows":    session.FailedRows,
+			"status":         session.Status,
+			"error_message":  session.ErrorMessage,
+			"created_at":     session.CreatedAt,
+			"updated_at":     session.UpdatedAt,
+			"is_batch":       false,
+		}
+		allSessions = append(allSessions, sessionMap)
+	}
+
+	for _, batch := range batchSessions {
+		allSessions = append(allSessions, batch.ToUploadSession())
+	}
+
+	// Combine totals and calculate pagination
+	totalCombined := totalRegular + totalBatch
+	pagination := utils.CalculatePagination(params.Page, params.Limit, int64(totalCombined))
 
 	responseData := fiber.Map{
-		"sessions": sessions,
+		"sessions": allSessions,
 		"pagination": pagination,
 	}
 

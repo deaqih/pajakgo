@@ -76,6 +76,56 @@ func (r *UploadRepository) GetSessions(limit, offset int, userID int) ([]models.
 	return sessions, total, nil
 }
 
+// GetBatchUploads gets batch uploads from transaction_data (session_id = 0)
+func (r *UploadRepository) GetBatchUploads(limit, offset int, userID int) ([]models.BatchUploadSession, int, error) {
+	var batches []models.BatchUploadSession
+	var total int
+
+	whereClause := "WHERE session_id = 0"
+	args := []interface{}{}
+
+	if userID > 0 {
+		whereClause += " AND user_id = ?"
+		args = append(args, userID)
+	}
+
+	// Count unique session codes
+	countQuery := "SELECT COUNT(DISTINCT session_code) FROM transaction_data " + whereClause
+	err := r.db.Get(&total, countQuery, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Get batch upload summary
+	query := `
+		SELECT
+			session_code,
+			user_id,
+			MIN(filename) as filename,
+			COUNT(*) as total_rows,
+			SUM(CASE WHEN is_processed = 1 THEN 1 ELSE 0 END) as processed_rows,
+			SUM(CASE WHEN is_processed = 0 THEN 1 ELSE 0 END) as failed_rows,
+			CASE
+				WHEN SUM(CASE WHEN is_processed = 1 THEN 1 ELSE 0 END) = COUNT(*) THEN 'completed'
+				WHEN SUM(CASE WHEN is_processed = 1 THEN 1 ELSE 0 END) > 0 THEN 'processing'
+				ELSE 'uploaded'
+			END as status,
+			MIN(created_at) as created_at,
+			MAX(updated_at) as updated_at
+		FROM transaction_data ` + whereClause + `
+		GROUP BY session_code, user_id
+		ORDER BY MIN(created_at) DESC
+		LIMIT ? OFFSET ?`
+
+	args = append(args, limit, offset)
+	err = r.db.Select(&batches, query, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return batches, total, nil
+}
+
 func (r *UploadRepository) UpdateSession(session *models.UploadSession) error {
 	query := `UPDATE upload_sessions SET processed_rows = :processed_rows,
 	          failed_rows = :failed_rows, status = :status, error_message = :error_message
