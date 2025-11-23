@@ -3,95 +3,369 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Upload - Accounting Web</title>
+    <title>New Upload - Pajak GO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Custom animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .slide-in {
+            animation: slideIn 0.4s ease-out;
+        }
+
+        .hover-lift {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Upload area styles */
+        .upload-area {
+            border: 2px dashed #d1d5db;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area.dragover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+
+        /* File list styles */
+        .file-item {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Scrollbar styles */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        secondary: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        'medium': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                        'large': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                    },
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">
     <!-- Navbar -->
-    <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4">
+    <nav class="glass-effect shadow-medium sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-4">
                 <div class="flex items-center space-x-4">
-                    <a href="/" class="text-2xl font-bold text-blue-600">Accounting Web</a>
+                    <a href="/" class="text-2xl font-bold gradient-text">Pajak GO</a>
                     <span class="text-gray-400">|</span>
-                    <span class="text-gray-600">New Upload</span>
+                    <nav class="hidden md:flex items-center space-x-4">
+                        <a href="/" class="text-gray-600 hover:text-primary-600 transition">Home</a>
+                        <a href="/uploads" class="text-gray-600 hover:text-primary-600 transition">Uploads</a>
+                        <span class="text-primary-600 font-medium">New Upload</span>
+                    </nav>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <span id="userDisplay" class="text-gray-700"></span>
-                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
-                        Logout
+                    <span id="userDisplay" class="text-gray-700 hidden sm:block"></span>
+                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition">
+                        <i class="fas fa-sign-out-alt mr-2"></i>
+                        <span class="hidden sm:inline">Logout</span>
+                    </button>
+                    <!-- Mobile menu button -->
+                    <button onclick="toggleMobileMenu()" class="md:hidden text-gray-700">
+                        <i class="fas fa-bars"></i>
                     </button>
                 </div>
+            </div>
+            <!-- Mobile menu -->
+            <div id="mobile-menu" class="hidden md:hidden pb-4">
+                <a href="/" class="block py-2 text-gray-600 hover:text-primary-600 transition">Home</a>
+                <a href="/uploads" class="block py-2 text-gray-600 hover:text-primary-600 transition">Uploads</a>
+                <span class="block py-2 text-primary-600 font-medium">New Upload</span>
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <div class="max-w-3xl mx-auto px-4 py-8">
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="mb-6">
-                <h2 class="text-2xl font-bold">Upload Excel File</h2>
-                <p class="text-gray-600 mt-2">Upload your transaction data in Excel format (.xlsx or .xls)</p>
+    <div id="main-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="mb-8 fade-in">
+            <div class="flex items-center justify-between">
+                <div>
+                    <nav class="flex items-center space-x-2 text-sm mb-2">
+                        <a href="/" class="text-gray-500 hover:text-primary-600 transition">Home</a>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                        <a href="/uploads" class="text-gray-500 hover:text-primary-600 transition">Uploads</a>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                        <span class="text-gray-900 font-medium">New Upload</span>
+                    </nav>
+                    <h1 class="text-4xl font-bold gradient-text mb-2">Upload Excel Files</h1>
+                    <p class="text-gray-600 text-lg">Upload multiple Excel files for processing and analysis</p>
+                </div>
             </div>
+        </div>
 
-            <!-- Template Download Section -->
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 fade-in">
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 hover-lift">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="text-lg font-semibold text-blue-900">Need a template?</h3>
-                        <p class="text-blue-700 text-sm mt-1">Download our Excel template with sample data and instructions</p>
+                        <p class="text-sm font-medium text-blue-600 mb-1">Files Selected</p>
+                        <p class="text-2xl font-bold text-gray-900" id="filesSelectedCount">0</p>
                     </div>
-                    <button onclick="downloadTemplate()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition duration-200">
-                        <i class="fas fa-file-download mr-2"></i>Download Template
-                    </button>
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-file text-white"></i>
+                    </div>
                 </div>
             </div>
 
-            <form id="uploadForm" class="space-y-6">
-                <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                    <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
-                    <div id="dropZone" class="cursor-pointer" onclick="document.getElementById('fileInput').click()">
-                        <i class="fas fa-cloud-upload-alt text-6xl text-gray-400 mb-4"></i>
-                        <p class="text-lg font-medium text-gray-700">Click to upload or drag and drop</p>
-                        <p class="text-sm text-gray-500 mt-2">Excel files (.xlsx, .xls) up to 100MB</p>
+            <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6 hover-lift">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-green-600 mb-1">Total Size</p>
+                        <p class="text-2xl font-bold text-gray-900" id="totalSizeDisplay">0 MB</p>
                     </div>
-                    <div id="fileInfo" class="hidden mt-4">
-                        <div class="flex items-center justify-center">
-                            <i class="fas fa-file-excel text-3xl text-green-600 mr-3"></i>
-                            <div class="text-left">
-                                <p id="fileName" class="font-medium text-gray-700"></p>
-                                <p id="fileSize" class="text-sm text-gray-500"></p>
-                            </div>
-                            <button type="button" onclick="clearFile()" class="ml-4 text-red-600 hover:text-red-800">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
+                    <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-database text-white"></i>
                     </div>
                 </div>
+            </div>
 
-                <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"></div>
-                <div id="successMessage" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded"></div>
+            <div class="bg-gradient-to-br from-yellow-50 to-orange-50 border border-yellow-200 rounded-2xl p-6 hover-lift">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-yellow-600 mb-1">Max Files</p>
+                        <p class="text-2xl font-bold text-gray-900">20</p>
+                    </div>
+                    <div class="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-layer-group text-white"></i>
+                    </div>
+                </div>
+            </div>
 
-                <div class="flex space-x-4">
-                    <button type="submit" id="uploadButton" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-200">
-                        <i class="fas fa-upload mr-2"></i>Upload File
+            <div class="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-2xl p-6 hover-lift">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-purple-600 mb-1">Max Size</p>
+                        <p class="text-2xl font-bold text-gray-900">500 MB</p>
+                    </div>
+                    <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-violet-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-weight text-white"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Form -->
+        <div class="glass-effect rounded-2xl shadow-large p-8 fade-in">
+            <div class="mb-6">
+                <h3 class="text-2xl font-semibold text-gray-900 mb-2">Select Files to Upload</h3>
+                <p class="text-gray-600">Choose up to 20 Excel files with total size not exceeding 500 MB</p>
+            </div>
+
+            <!-- Upload Area -->
+            <div id="uploadArea" class="upload-area bg-white border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center hover:border-primary-400 transition-all duration-300 cursor-pointer">
+                <input type="file" id="fileInput" multiple accept=".xlsx,.xls" class="hidden">
+                <div class="flex flex-col items-center">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mb-4">
+                        <i class="fas fa-cloud-upload-alt text-white text-2xl"></i>
+                    </div>
+                    <h4 class="text-lg font-semibold text-gray-900 mb-2">Drag & Drop Files Here</h4>
+                    <p class="text-gray-600 mb-4">or click to browse</p>
+                    <button type="button" onclick="document.getElementById('fileInput').click()" class="bg-gradient-to-r from-primary-600 to-secondary-600 text-white px-6 py-3 rounded-xl hover:from-primary-700 hover:to-secondary-700 transition-all duration-300 hover-lift">
+                        <i class="fas fa-folder-open mr-2"></i>
+                        Choose Excel Files
                     </button>
-                    <a href="/uploads" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg text-center transition duration-200">
-                        Cancel
-                    </a>
+                    <div class="mt-6 flex flex-wrap justify-center gap-4 text-sm text-gray-600">
+                        <span class="flex items-center">
+                            <i class="fas fa-check-circle text-green-500 mr-1"></i>
+                            Excel (.xlsx, .xls)
+                        </span>
+                        <span class="flex items-center">
+                            <i class="fas fa-check-circle text-green-500 mr-1"></i>
+                            Max 20 files
+                        </span>
+                        <span class="flex items-center">
+                            <i class="fas fa-check-circle text-green-500 mr-1"></i>
+                            Max 500 MB total
+                        </span>
+                    </div>
                 </div>
-            </form>
+            </div>
 
-            <div id="uploadProgress" class="hidden mt-6">
-                <div class="bg-blue-100 rounded-lg p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm font-medium text-blue-900">Uploading...</span>
-                        <span id="progressPercent" class="text-sm font-medium text-blue-900">0%</span>
+            <!-- File List -->
+            <div id="fileListContainer" class="mt-8 hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-lg font-semibold text-gray-900">Selected Files</h4>
+                    <button onclick="clearAllFiles()" class="text-red-600 hover:text-red-700 text-sm font-medium">
+                        <i class="fas fa-trash mr-1"></i>
+                        Clear All
+                    </button>
+                </div>
+                <div id="fileList" class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
+                    <!-- Files will be added here dynamically -->
+                </div>
+            </div>
+
+            <!-- Upload Progress -->
+            <div id="uploadProgress" class="hidden mt-8">
+                <div class="mb-4">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-2">Uploading Files...</h4>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div id="progressBar" class="progress-bar bg-gradient-to-r from-primary-600 to-secondary-600 h-2 rounded-full" style="width: 0%"></div>
                     </div>
-                    <div class="w-full bg-blue-200 rounded-full h-2">
-                        <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
-                    </div>
+                    <p class="text-sm text-gray-600 mt-2">
+                        <span id="uploadStatusText">0 / 0 files uploaded</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Error Messages -->
+            <div id="errorMessage" class="hidden mt-6 bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-xl flex items-center">
+                <i class="fas fa-exclamation-triangle mr-3 text-red-500"></i>
+                <div>
+                    <p class="font-semibold" id="errorTitle">Error</p>
+                    <p class="text-sm" id="errorText"></p>
+                </div>
+            </div>
+
+            <!-- Success Message -->
+            <div id="successMessage" class="hidden mt-6 bg-green-100 border border-green-400 text-green-700 px-6 py-4 rounded-xl flex items-center">
+                <i class="fas fa-check-circle mr-3 text-green-500"></i>
+                <div>
+                    <p class="font-semibold">Upload Successful</p>
+                    <p class="text-sm" id="successText"></p>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <button onclick="downloadTemplate()" class="px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 hover-l flex items-center">
+                    <i class="fas fa-file-download mr-2"></i>
+                    Download Template
+                </button>
+                <div class="flex space-x-4">
+                    <a href="/uploads" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Back to Uploads
+                    </a>
+                    <button id="uploadButton" type="button" onclick="startUpload()" disabled class="px-6 py-3 bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-lg hover:from-primary-700 hover:to-secondary-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-cloud-upload-alt mr-2"></i>
+                        Upload Files
+                    </button>
                 </div>
             </div>
         </div>
@@ -99,14 +373,14 @@
 
     <script>
         const token = localStorage.getItem('access_token');
-        if (!token) {
-            window.location.href = '/login';
-        }
+        if (!token) window.location.href = '/login';
 
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         document.getElementById('userDisplay').textContent = user.username || 'User';
 
-        let selectedFile = null;
+        let selectedFiles = [];
+        const MAX_FILES = 20;
+        const MAX_TOTAL_SIZE = 500 * 1024 * 1024; // 500 MB in bytes
 
         function logout() {
             localStorage.removeItem('access_token');
@@ -114,22 +388,11 @@
             window.location.href = '/login';
         }
 
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                selectedFile = file;
-                document.getElementById('dropZone').classList.add('hidden');
-                document.getElementById('fileInfo').classList.remove('hidden');
-                document.getElementById('fileName').textContent = file.name;
-                document.getElementById('fileSize').textContent = formatFileSize(file.size);
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            if (menu) {
+                menu.classList.toggle('hidden');
             }
-        });
-
-        function clearFile() {
-            selectedFile = null;
-            document.getElementById('fileInput').value = '';
-            document.getElementById('dropZone').classList.remove('hidden');
-            document.getElementById('fileInfo').classList.add('hidden');
         }
 
         function formatFileSize(bytes) {
@@ -137,65 +400,137 @@
             const k = 1024;
             const sizes = ['Bytes', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        function updateStatistics() {
+            const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0);
 
-            if (!selectedFile) {
-                showError('Please select a file to upload');
+            document.getElementById('filesSelectedCount').textContent = selectedFiles.length;
+            document.getElementById('totalSizeDisplay').textContent = formatFileSize(totalSize);
+
+            // Update button state
+            const uploadButton = document.getElementById('uploadButton');
+            if (selectedFiles.length > 0) {
+                uploadButton.disabled = false;
+            } else {
+                uploadButton.disabled = true;
+            }
+        }
+
+        function validateFile(file) {
+            // Check file type
+            const validTypes = [
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/vnd.ms-excel.sheet.macroEnabled.12',
+                'application/vnd.ms-excel.template.macroEnabled.12'
+            ];
+
+            // Also check by extension
+            const fileName = file.name.toLowerCase();
+            const validExtensions = ['.xlsx', '.xls'];
+
+            const hasValidType = validTypes.includes(file.type);
+            const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
+
+            if (!hasValidType && !hasValidExtension) {
+                throw new Error('Invalid file type. Please upload only Excel files (.xlsx, .xls)');
+            }
+
+            // Check total file count
+            if (selectedFiles.length >= MAX_FILES) {
+                throw new Error(`Maximum ${MAX_FILES} files allowed per upload`);
+            }
+
+            // Check for duplicate file names
+            if (selectedFiles.some(f => f.name === file.name)) {
+                throw new Error(`File "${file.name}" already selected`);
+            }
+
+            // Check total size
+            const currentTotalSize = selectedFiles.reduce((sum, f) => sum + f.size, 0);
+            const newTotalSize = currentTotalSize + file.size;
+
+            if (newTotalSize > MAX_TOTAL_SIZE) {
+                throw new Error(`Total size exceeds maximum limit of ${formatFileSize(MAX_TOTAL_SIZE)}`);
+            }
+        }
+
+        function addFileToList(file) {
+            const fileId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between';
+            fileItem.innerHTML = `
+                <div class="flex items-center flex-1">
+                    <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-file-excel text-white"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-medium text-gray-900 truncate" title="${file.name}">${file.name}</p>
+                        <p class="text-sm text-gray-600">${formatFileSize(file.size)}</p>
+                    </div>
+                </div>
+                <button onclick="removeFile('${fileId}')" class="w-8 h-8 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors flex items-center justify-center ml-3">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+
+            fileItem.setAttribute('data-file-id', fileId);
+            document.getElementById('fileList').appendChild(fileItem);
+
+            selectedFiles.push({
+                id: fileId,
+                file: file,
+                name: file.name,
+                size: file.size
+            });
+        }
+
+        function removeFile(fileId) {
+            const fileItem = document.querySelector(`[data-file-id="${fileId}"]`);
+            if (fileItem) {
+                fileItem.remove();
+            }
+
+            selectedFiles = selectedFiles.filter(f => f.id !== fileId);
+
+            updateStatistics();
+
+            // Hide file list if no files
+            if (selectedFiles.length === 0) {
+                document.getElementById('fileListContainer').classList.add('hidden');
+            }
+        }
+
+        function clearAllFiles() {
+            if (!confirm('Are you sure you want to clear all selected files?')) {
                 return;
             }
 
-            const errorDiv = document.getElementById('errorMessage');
-            const successDiv = document.getElementById('successMessage');
-            const uploadButton = document.getElementById('uploadButton');
-            const progressDiv = document.getElementById('uploadProgress');
-
-            errorDiv.classList.add('hidden');
-            successDiv.classList.add('hidden');
-            uploadButton.disabled = true;
-            progressDiv.classList.remove('hidden');
-
-            const formData = new FormData();
-            formData.append('file', selectedFile);
-
-            try {
-                const response = await fetch('/api/v1/uploads', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    successDiv.textContent = 'File uploaded successfully! Redirecting...';
-                    successDiv.classList.remove('hidden');
-                    setTimeout(() => {
-                        window.location.href = '/uploads/' + data.data.session.id;
-                    }, 1500);
-                } else {
-                    showError(data.message || 'Upload failed');
-                    uploadButton.disabled = false;
-                    progressDiv.classList.add('hidden');
-                }
-            } catch (error) {
-                showError('An error occurred: ' + error.message);
-                uploadButton.disabled = false;
-                progressDiv.classList.add('hidden');
-            }
-        });
-
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.classList.remove('hidden');
+            document.getElementById('fileList').innerHTML = '';
+            selectedFiles = [];
+            document.getElementById('fileListContainer').classList.add('hidden');
+            updateStatistics();
         }
 
+        function showError(title, message) {
+            document.getElementById('errorTitle').textContent = title;
+            document.getElementById('errorText').textContent = message;
+            document.getElementById('errorMessage').classList.remove('hidden');
+
+            // Hide after 5 seconds
+            setTimeout(() => {
+                document.getElementById('errorMessage').classList.add('hidden');
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            document.getElementById('successText').textContent = message;
+            document.getElementById('successMessage').classList.remove('hidden');
+        }
+
+        // Download template function
         async function downloadTemplate() {
             try {
                 const response = await fetch('/api/v1/uploads/template', {
@@ -215,13 +550,135 @@
                     a.click();
                     document.body.removeChild(a);
                     window.URL.revokeObjectURL(url);
+
+                    // Show success message
+                    showSuccess('Template downloaded successfully');
                 } else {
-                    showError('Failed to download template');
+                    throw new Error('Failed to download template');
                 }
             } catch (error) {
-                showError('Error downloading template: ' + error.message);
+                showError('Download Failed', error.message || 'An error occurred while downloading template');
             }
         }
+
+        async function startUpload() {
+            if (selectedFiles.length === 0) {
+                showError('No Files Selected', 'Please select at least one file to upload');
+                return;
+            }
+
+            // Hide file list and show progress
+            document.getElementById('fileListContainer').classList.add('hidden');
+            document.getElementById('uploadProgress').classList.remove('hidden');
+            document.getElementById('uploadButton').disabled = true;
+
+            const formData = new FormData();
+            const files = selectedFiles.map(f => f.file);
+
+            // Add all files to FormData
+            files.forEach(file => {
+                formData.append('files', file);
+            });
+
+            try {
+                const response = await fetch('/api/v1/uploads/multiple', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Show success with detailed information
+                    const successData = data.data;
+                    const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+                    const message = `Successfully uploaded ${successData.total_files} file${successData.total_files > 1 ? 's' : ''} with ${successData.total_rows} total rows (${formatFileSize(totalSize)}).`;
+
+                    if (successData.total_errors > 0) {
+                        showError('Partial Upload Complete', `${message} ${successData.total_errors} file${successData.total_errors > 1 ? 's' : ''} failed to upload.`);
+                    } else {
+                        showSuccess(message);
+                    }
+
+                    // Redirect to uploads list after 3 seconds
+                    setTimeout(() => {
+                        window.location.href = '/uploads';
+                    }, 3000);
+                } else {
+                    throw new Error(data.message || 'Upload failed');
+                }
+            } catch (error) {
+                showError('Upload Failed', error.message || 'An error occurred while uploading files');
+
+                // Reset UI
+                document.getElementById('uploadProgress').classList.add('hidden');
+                document.getElementById('fileListContainer').classList.remove('hidden');
+                document.getElementById('uploadButton').disabled = false;
+                updateStatistics();
+            }
+        }
+
+        // File input event handlers
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        // Drag and drop handlers
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        function handleFiles(files) {
+            for (let i = 0; i < files.length; i++) {
+                try {
+                    validateFile(files[i]);
+                    addFileToList(files[i]);
+                } catch (error) {
+                    showError('File Validation Error', error.message);
+                    break;
+                }
+            }
+
+            if (selectedFiles.length > 0) {
+                document.getElementById('fileListContainer').classList.remove('hidden');
+            }
+
+            updateStatistics();
+        }
+
+        // Add fade-in animation to page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const elements = document.querySelectorAll('.fade-in');
+            elements.forEach((el, index) => {
+                setTimeout(() => {
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(20px)';
+                    el.style.animation = 'fadeIn 0.6s ease-out forwards';
+                }, index * 100);
+            });
+        });
     </script>
 </body>
 </html>
