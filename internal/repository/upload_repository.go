@@ -96,12 +96,13 @@ func (r *UploadRepository) CreateMultipleTransactions(transactions []models.Tran
 		return nil
 	}
 
-	// Handle bulk insert for transactions without session_id (batch upload)
-	// Use NULL for session_id and session_code for batch identification
+	// Since session_id is NOT NULL in database, we need to create a dummy session
+	// or use a special value to identify batch uploads
+	// We'll use session_id = 0 and session_code for batch identification
 	query := `INSERT INTO transaction_data (session_id, session_code, user_id, file_path, filename,
 	          document_type, document_number, posting_date, account, account_name,
 	          keterangan, debet, credit, net)
-	          VALUES (NULL, :session_code, :user_id, :file_path, :filename,
+	          VALUES (0, :session_code, :user_id, :file_path, :filename,
 	          :document_type, :document_number, :posting_date, :account, :account_name,
 	          :keterangan, :debet, :credit, :net)`
 
