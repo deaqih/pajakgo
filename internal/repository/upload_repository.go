@@ -162,6 +162,12 @@ func (r *UploadRepository) CreateMultipleTransactions(transactions []models.Tran
 		return nil
 	}
 
+	fmt.Printf("DEBUG: CreateMultipleTransactions: Processing %d transactions\n", len(transactions))
+	for i, tx := range transactions {
+		fmt.Printf("DEBUG: Transaction %d: session_code='%s', session_id=%d, user_id=%d, filename='%s'\n",
+			i+1, tx.SessionCode, tx.SessionID, tx.UserID, tx.Filename)
+	}
+
 	// Since session_id is NOT NULL in database, we need to create a dummy session
 	// or use a special value to identify batch uploads
 	// We'll use session_id = 0 and session_code for batch identification
@@ -172,8 +178,15 @@ func (r *UploadRepository) CreateMultipleTransactions(transactions []models.Tran
 	          :document_type, :document_number, :posting_date, :account, :account_name,
 	          :keterangan, :debet, :credit, :net)`
 
-	_, err := r.db.NamedExec(query, transactions)
-	return err
+	result, err := r.db.NamedExec(query, transactions)
+	if err != nil {
+		fmt.Printf("DEBUG: CreateMultipleTransactions ERROR: %v\n", err)
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	fmt.Printf("DEBUG: CreateMultipleTransactions SUCCESS: %d rows inserted\n", rowsAffected)
+	return nil
 }
 
 // UpdateTransactionsSessionID updates session_id for transactions with given session_code
