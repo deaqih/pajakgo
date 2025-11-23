@@ -177,12 +177,46 @@ func (h *UploadHandler) UploadMultipleFiles(c *fiber.Ctx) error {
 	totalRows := 0
 	totalFiles := 0
 	totalErrors := 0
+	var firstFileName string
 	for _, result := range uploadResults {
 		if result["success"].(bool) {
 			totalRows += result["rows"].(int)
 			totalFiles++
+			if firstFileName == "" {
+				firstFileName = result["filename"].(string)
+			}
 		} else {
 			totalErrors++
+		}
+	}
+
+	// Create upload session record if at least one file was processed successfully
+	if totalFiles > 0 {
+		status := "uploaded"
+		if totalErrors > 0 {
+			status = "uploaded" // Some files failed but batch has some success
+		}
+
+		session := &models.UploadSession{
+			SessionCode: sessionCode,
+			UserID:      userID,
+			Filename:    fmt.Sprintf("Batch: %d files (%s)", totalFiles, firstFileName),
+			FilePath:    h.cfg.UploadPath,
+			TotalRows:   totalRows,
+			Status:      status,
+		}
+
+		err = h.uploadRepo.CreateSession(session)
+		if err != nil {
+			// Log error but don't fail the upload - transactions are already saved
+			fmt.Printf("Warning: Failed to create upload session record: %v\n", err)
+		}
+
+		// Now update transactions with the actual session_id
+		err = h.uploadRepo.UpdateTransactionsSessionID(sessionCode, session.ID)
+		if err != nil {
+			// Log error but don't fail the upload
+			fmt.Printf("Warning: Failed to update transactions with session_id: %v\n", err)
 		}
 	}
 

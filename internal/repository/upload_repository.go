@@ -76,21 +76,26 @@ func (r *UploadRepository) GetSessions(limit, offset int, userID int) ([]models.
 	return sessions, total, nil
 }
 
-// GetBatchUploads gets batch uploads from transaction_data (session_id = 0)
+// GetBatchUploads gets batch uploads from transaction_data that don't have matching upload_sessions
 func (r *UploadRepository) GetBatchUploads(limit, offset int, userID int) ([]models.BatchUploadSession, int, error) {
 	var batches []models.BatchUploadSession
 	var total int
 
-	whereClause := "WHERE session_id = 0"
+	whereClause := "WHERE t.session_id = 0"
 	args := []interface{}{}
 
 	if userID > 0 {
-		whereClause += " AND user_id = ?"
+		whereClause += " AND t.user_id = ?"
 		args = append(args, userID)
 	}
 
 	// Count unique session codes
-	countQuery := "SELECT COUNT(DISTINCT session_code) FROM transaction_data " + whereClause
+	countQuery := `
+		SELECT COUNT(DISTINCT session_code)
+		FROM transaction_data t
+		LEFT JOIN upload_sessions s ON t.session_id = s.id
+		` + whereClause
+
 	err := r.db.Get(&total, countQuery, args...)
 	if err != nil {
 		return nil, 0, err
@@ -99,22 +104,24 @@ func (r *UploadRepository) GetBatchUploads(limit, offset int, userID int) ([]mod
 	// Get batch upload summary
 	query := `
 		SELECT
-			session_code,
-			user_id,
-			MIN(filename) as filename,
+			t.session_code,
+			t.user_id,
+			MIN(t.filename) as filename,
 			COUNT(*) as total_rows,
-			SUM(CASE WHEN is_processed = 1 THEN 1 ELSE 0 END) as processed_rows,
-			SUM(CASE WHEN is_processed = 0 THEN 1 ELSE 0 END) as failed_rows,
+			SUM(CASE WHEN t.is_processed = 1 THEN 1 ELSE 0 END) as processed_rows,
+			SUM(CASE WHEN t.is_processed = 0 THEN 1 ELSE 0 END) as failed_rows,
 			CASE
-				WHEN SUM(CASE WHEN is_processed = 1 THEN 1 ELSE 0 END) = COUNT(*) THEN 'completed'
-				WHEN SUM(CASE WHEN is_processed = 1 THEN 1 ELSE 0 END) > 0 THEN 'processing'
+				WHEN SUM(CASE WHEN t.is_processed = 1 THEN 1 ELSE 0 END) = COUNT(*) THEN 'completed'
+				WHEN SUM(CASE WHEN t.is_processed = 1 THEN 1 ELSE 0 END) > 0 THEN 'processing'
 				ELSE 'uploaded'
 			END as status,
-			MIN(created_at) as created_at,
-			MAX(updated_at) as updated_at
-		FROM transaction_data ` + whereClause + `
-		GROUP BY session_code, user_id
-		ORDER BY MIN(created_at) DESC
+			MIN(t.created_at) as created_at,
+			MAX(t.updated_at) as updated_at
+		FROM transaction_data t
+		LEFT JOIN upload_sessions s ON t.session_id = s.id
+		` + whereClause + `
+		GROUP BY t.session_code, t.user_id
+		ORDER BY MIN(t.created_at) DESC
 		LIMIT ? OFFSET ?`
 
 	args = append(args, limit, offset)
@@ -157,6 +164,13 @@ func (r *UploadRepository) CreateMultipleTransactions(transactions []models.Tran
 	          :keterangan, :debet, :credit, :net)`
 
 	_, err := r.db.NamedExec(query, transactions)
+	return err
+}
+
+// UpdateTransactionsSessionID updates session_id for transactions with given session_code
+func (r *UploadRepository) UpdateTransactionsSessionID(sessionCode string, sessionID int) error {
+	query := `UPDATE transaction_data SET session_id = ? WHERE session_code = ? AND session_id = 0`
+	_, err := r.db.Exec(query, sessionID, sessionCode)
 	return err
 }
 
