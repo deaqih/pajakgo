@@ -152,6 +152,7 @@ func (h *UploadHandler) UploadMultipleFiles(c *fiber.Ctx) error {
 			transaction.UserID = userID
 			transaction.FilePath = filePath
 			transaction.Filename = file.Filename
+			fmt.Printf("DEBUG: Setting transaction session_code: %s for file: %s\n", sessionCode, file.Filename)
 		}
 
 		err = h.uploadRepo.CreateMultipleTransactions(transactions)
