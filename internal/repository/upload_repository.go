@@ -82,7 +82,7 @@ func (r *UploadRepository) GetBatchUploads(limit, offset int, userID int) ([]mod
 	var batches []models.BatchUploadSession
 	var total int
 
-	whereClause := "WHERE t.session_id = 0"
+	whereClause := "WHERE t.session_id = 0 AND t.session_code IS NOT NULL"
 	args := []interface{}{}
 
 	if userID > 0 {
