@@ -2,6 +2,7 @@ package repository
 
 import (
 	"accounting-web/internal/models"
+	"fmt"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -125,11 +126,19 @@ func (r *UploadRepository) GetBatchUploads(limit, offset int, userID int) ([]mod
 		LIMIT ? OFFSET ?`
 
 	args = append(args, limit, offset)
+
+	fmt.Printf("DEBUG: Executing GetBatchUploads query for userID: %d, limit: %d, offset: %d\n", userID, limit, offset)
+	fmt.Printf("DEBUG: Total count before: %d\n", total)
+
 	err = r.db.Select(&batches, query, args...)
 	if err != nil {
+		fmt.Printf("DEBUG: GetBatchUploads query error: %v\n", err)
+		fmt.Printf("DEBUG: Query: %s\n", query)
+		fmt.Printf("DEBUG: Args: %v\n", args)
 		return nil, 0, err
 	}
 
+	fmt.Printf("DEBUG: GetBatchUploads success, found %d batches\n", len(batches))
 	return batches, total, nil
 }
 
