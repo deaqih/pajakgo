@@ -5,6 +5,7 @@ import (
 	"accounting-web/internal/repository"
 	"accounting-web/internal/service"
 	"accounting-web/internal/utils"
+	"database/sql"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -74,6 +75,7 @@ func (h *KoreksiRuleHandler) CreateKoreksiRule(c *fiber.Ctx) error {
 	rule := &models.KoreksiRule{
 		Keyword:  req.Keyword,
 		Value:    req.Value,
+		NotValue: sql.NullString{String: req.NotValue, Valid: req.NotValue != ""},
 		IsActive: true, // Default to active
 	}
 
@@ -107,6 +109,7 @@ func (h *KoreksiRuleHandler) UpdateKoreksiRule(c *fiber.Ctx) error {
 
 	rule.Keyword = req.Keyword
 	rule.Value = req.Value
+	rule.NotValue = sql.NullString{String: req.NotValue, Valid: req.NotValue != ""}
 	rule.IsActive = req.IsActive
 
 	if err := h.rulesRepo.UpdateKoreksiRule(rule); err != nil {
@@ -159,11 +162,13 @@ func (h *KoreksiRuleHandler) DownloadTemplate(c *fiber.Ctx) error {
 		{
 			Keyword:  "PPH 21",
 			Value:    "21",
+			NotValue: sql.NullString{String: "", Valid: false},
 			IsActive: true,
 		},
 		{
 			Keyword:  "PPH 23",
 			Value:    "23",
+			NotValue: sql.NullString{String: "exclude", Valid: true},
 			IsActive: true,
 		},
 	}

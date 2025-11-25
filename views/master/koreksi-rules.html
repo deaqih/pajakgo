@@ -3,73 +3,336 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Koreksi Rules - Accounting Web</title>
+    <title>Koreksi Rules - Pajak GO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="/static/shared/pagination.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Custom animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .slide-in {
+            animation: slideIn 0.4s ease-out;
+        }
+
+        .hover-lift {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        secondary: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        'medium': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                        'large': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                    },
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">
     <!-- Navbar -->
-    <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4">
+    <nav class="glass-effect shadow-medium sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-4">
                 <div class="flex items-center space-x-4">
-                    <a href="/" class="text-2xl font-bold text-blue-600">Accounting Web</a>
+                    <a href="/" class="text-2xl font-bold gradient-text">Pajak GO</a>
                     <span class="text-gray-400">|</span>
-                    <span class="text-gray-600">Koreksi Rules</span>
+                    <nav class="hidden md:flex items-center space-x-4">
+                        <a href="/" class="text-gray-600 hover:text-primary-600 transition">Home</a>
+                        <a href="/uploads" class="text-gray-600 hover:text-primary-600 transition">Uploads</a>
+                        <a href="/master" class="text-gray-600 hover:text-primary-600 transition">Master Data</a>
+                        <span class="text-primary-600 font-medium">Koreksi Rules</span>
+                    </nav>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <span id="userDisplay" class="text-gray-700"></span>
-                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
-                        Logout
+                    <span id="userDisplay" class="text-gray-700 hidden sm:block"></span>
+                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition">
+                        <i class="fas fa-sign-out-alt mr-2"></i>
+                        <span class="hidden sm:inline">Logout</span>
+                    </button>
+                    <!-- Mobile menu button -->
+                    <button onclick="toggleMobileMenu()" class="md:hidden text-gray-700">
+                        <i class="fas fa-bars"></i>
                     </button>
                 </div>
+            </div>
+            <!-- Mobile menu -->
+            <div id="mobile-menu" class="hidden md:hidden pb-4">
+                <a href="/" class="block py-2 text-gray-600 hover:text-primary-600 transition">Home</a>
+                <a href="/uploads" class="block py-2 text-gray-600 hover:text-primary-600 transition">Uploads</a>
+                <a href="/master" class="block py-2 text-gray-600 hover:text-primary-600 transition">Master Data</a>
+                <span class="block py-2 text-primary-600 font-medium">Koreksi Rules</span>
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <div id="main-content" class="max-w-7xl mx-auto px-4 py-8">
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">Koreksi Rules Management</h2>
-                <div class="flex space-x-2">
-                    <button onclick="downloadTemplate()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded">
-                        <i class="fas fa-file-download mr-2"></i>Template
-                    </button>
-                    <button onclick="exportRules()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
-                        <i class="fas fa-download mr-2"></i>Export
-                    </button>
-                    <button onclick="showImportModal()" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded">
-                        <i class="fas fa-upload mr-2"></i>Import
-                    </button>
-                    <button onclick="showAddModal()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-                        <i class="fas fa-plus mr-2"></i>Add Rule
-                    </button>
+    <div id="main-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="mb-8 fade-in">
+            <div class="flex items-center justify-between">
+                <div>
+                    <nav class="flex items-center space-x-2 text-sm mb-2">
+                        <a href="/" class="text-gray-500 hover:text-primary-600 transition">Home</a>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                        <a href="/master" class="text-gray-500 hover:text-primary-600 transition">Master Data</a>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                        <span class="text-gray-900 font-medium">Koreksi Rules</span>
+                    </nav>
+                    <h1 class="text-4xl font-bold gradient-text mb-2">Koreksi Rules Management</h1>
+                    <p class="text-gray-600 text-lg">Manage keyword-based correction rules for transaction classification</p>
+                </div>
+                <button onclick="showAddModal()" class="bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-700 hover:to-secondary-700 text-white px-6 py-3 rounded-xl transition-all duration-300 hover-lift flex items-center">
+                    <i class="fas fa-plus mr-2"></i>
+                    <span>Add Rule</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 fade-in">
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 hover-lift">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-blue-600 mb-1">Total Rules</p>
+                        <p class="text-2xl font-bold text-gray-900" id="totalRulesCount">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-list text-white"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6 hover-lift">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-green-600 mb-1">Active Rules</p>
+                        <p class="text-2xl font-bold text-gray-900" id="activeRulesCount">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-white"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-yellow-50 to-orange-50 border border-yellow-200 rounded-2xl p-6 hover-lift">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-yellow-600 mb-1">With Not Value</p>
+                        <p class="text-2xl font-bold text-gray-900" id="withNotValueCount">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-ban text-white"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-2xl p-6 hover-lift">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-purple-600 mb-1">Keywords</p>
+                        <p class="text-2xl font-bold text-gray-900" id="uniqueKeywordsCount">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-violet-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-key text-white"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap gap-4 mb-8 fade-in">
+            <button onclick="downloadTemplate()" class="glass-effect px-6 py-3 rounded-xl hover-lift flex items-center space-x-2">
+                <div class="w-8 h-8 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-file-download text-white text-sm"></i>
+                </div>
+                <span>Download Template</span>
+            </button>
+            <button onclick="exportRules()" class="glass-effect px-6 py-3 rounded-xl hover-lift flex items-center space-x-2">
+                <div class="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-download text-white text-sm"></i>
+                </div>
+                <span>Export Data</span>
+            </button>
+            <button onclick="showImportModal()" class="glass-effect px-6 py-3 rounded-xl hover-lift flex items-center space-x-2">
+                <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-violet-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-upload text-white text-sm"></i>
+                </div>
+                <span>Import Excel</span>
+            </button>
+        </div>
+
+        <!-- Main Table Card -->
+        <div class="glass-effect rounded-2xl shadow-large p-8 fade-in">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
+                <div>
+                    <h3 class="text-2xl font-semibold text-gray-900 mb-2">Koreksi Rules Data</h3>
+                    <p class="text-gray-600">Complete list of keyword-based correction rules</p>
+                </div>
+                <div class="flex items-center space-x-4 mt-4 lg:mt-0">
+                    <div class="text-sm text-gray-600 bg-gray-100 px-4 py-2 rounded-lg">
+                        Showing <span id="showingFrom" class="font-semibold">0</span> to <span id="showingTo" class="font-semibold">0</span> of <span id="totalRecords" class="font-semibold">0</span> entries
+                    </div>
                 </div>
             </div>
 
             <!-- Search and Controls -->
-            <div class="mb-4 flex justify-between items-center">
-                <div class="search-box flex-1 max-w-md"></div>
-                <div class="limit-selector"></div>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <div class="flex items-center space-x-3 w-full sm:w-auto">
+                    <div class="relative flex-1 sm:flex-initial">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text" id="searchInput" placeholder="Search rules by keyword, value, or not value..."
+                            class="w-full sm:w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <label class="text-sm font-medium text-gray-700">Show</label>
+                    <select id="limitSelect" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="10">10</option>
+                        <option value="25" selected>25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <label class="text-sm font-medium text-gray-700">entries</label>
+                </div>
             </div>
 
             <!-- Table -->
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto border border-gray-200 rounded-xl">
                 <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
+                    <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Keyword</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Value</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Keyword</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Value</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Not Value</th>
+                            <th class="px-6 py-3 text-center text-xs font-semibold text-gray-900 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-center text-xs font-semibold text-gray-900 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
                         <tr>
-                            <td colspan="4" class="px-6 py-4 text-center text-gray-500">
-                                <i class="fas fa-spinner fa-spin mr-2"></i>Loading...
+                            <td colspan="5" class="px-6 py-12 text-center">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-12 h-12 border-4 border-primary-300 border-t-primary-600 rounded-full animate-spin mb-4"></div>
+                                    <p class="text-gray-500 font-medium">Loading rules...</p>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -77,47 +340,93 @@
             </div>
 
             <!-- Pagination -->
-            <div class="mt-4 pagination-container"></div>
+            <div class="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="text-sm text-gray-600">
+                    <span class="font-medium">Page <span id="currentPageInfo">1</span> of <span id="totalPagesInfo">1</span></span>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button id="firstPageBtn" onclick="goToPage(1)" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        <i class="fas fa-angle-double-left"></i>
+                    </button>
+                    <button id="prevPageBtn" onclick="previousPage()" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        <i class="fas fa-angle-left"></i>
+                    </button>
+                    <div class="flex items-center space-x-1" id="pageNumbers">
+                        <!-- Page numbers will be inserted here -->
+                    </div>
+                    <button id="nextPageBtn" onclick="nextPage()" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        <i class="fas fa-angle-right"></i>
+                    </button>
+                    <button id="lastPageBtn" onclick="goToPage('last')" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        <i class="fas fa-angle-double-right"></i>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Add/Edit Modal -->
-    <div id="ruleModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="modalTitle" class="text-xl font-bold">Add Koreksi Rule</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+    <div id="ruleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-3xl shadow-large rounded-2xl bg-white fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h3 id="modalTitle" class="text-2xl font-semibold gradient-text">Add Koreksi Rule</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
                     <i class="fas fa-times text-2xl"></i>
                 </button>
             </div>
-            <form id="ruleForm" class="space-y-4">
+            <form id="ruleForm" class="space-y-6">
                 <input type="hidden" id="ruleId">
-                <div class="grid grid-cols-1 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Keyword *</label>
+                        <label class="block text-sm font-semibold text-gray-900 mb-2">
+                            <i class="fas fa-key mr-1 text-primary-600"></i>
+                            Keyword *
+                        </label>
                         <input type="text" id="keyword" required
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="e.g., PPH 21, PPH 23">
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                            placeholder="e.g., PPH 21, Entertainment">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Value *</label>
+                        <label class="block text-sm font-semibold text-gray-900 mb-2">
+                            <i class="fas fa-check mr-1 text-primary-600"></i>
+                            Value *
+                        </label>
                         <input type="text" id="value" required
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="e.g., 21, 23">
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                            placeholder="e.g., 21, Biaya Entertainment">
                     </div>
-                    <div>
-                        <label class="flex items-center">
-                            <input type="checkbox" id="isActive" checked class="mr-2">
-                            <span class="text-sm font-medium text-gray-700">Is Active</span>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-semibold text-gray-900 mb-2">
+                            <i class="fas fa-ban mr-1 text-primary-600"></i>
+                            Not Value (Optional)
+                        </label>
+                        <input type="text" id="notValue"
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                            placeholder="Value to exclude or match against">
+                        <p class="text-sm text-gray-500 mt-1">This value will be used to exclude or match specific patterns during processing</p>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg">
+                            <input type="checkbox" id="isActive" checked class="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500">
+                            <span class="text-sm font-medium text-gray-900">
+                                <i class="fas fa-check-circle mr-1 text-green-600"></i>
+                                Rule is Active
+                            </span>
                         </label>
                     </div>
                 </div>
-                <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"></div>
-                <div class="flex space-x-2">
-                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg">
-                        Save
+                <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl flex items-center">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <span id="errorText"></span>
+                </div>
+                <div class="flex space-x-3">
+                    <button type="submit" class="flex-1 bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-700 hover:to-secondary-700 text-white font-semibold py-3 rounded-xl transition-all duration-300 hover-lift">
+                        <i class="fas fa-save mr-2"></i>
+                        Save Rule
                     </button>
-                    <button type="button" onclick="closeModal()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 rounded-lg">
+                    <button type="button" onclick="closeModal()" class="flex-1 glass-effect text-gray-700 font-semibold py-3 rounded-xl hover-lift">
+                        <i class="fas fa-times mr-2"></i>
                         Cancel
                     </button>
                 </div>
@@ -126,35 +435,49 @@
     </div>
 
     <!-- Import Modal -->
-    <div id="importModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold">Import Koreksi Rules</h3>
-                <button onclick="closeImportModal()" class="text-gray-400 hover:text-gray-600">
+    <div id="importModal" class="hidden fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-large rounded-2xl bg-white fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-semibold gradient-text">Import Koreksi Rules</h3>
+                <button onclick="closeImportModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
                     <i class="fas fa-times text-2xl"></i>
                 </button>
             </div>
-            <form id="importForm">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Upload Excel File</label>
-                    <input type="file" id="importFile" accept=".xlsx,.xls" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                    <p class="text-xs text-gray-500 mt-2">
-                        Format: Keyword, Value, Is Active
+            <form id="importForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">
+                        <i class="fas fa-file-excel mr-1 text-primary-600"></i>
+                        Upload Excel File
+                    </label>
+                    <div class="relative">
+                        <input type="file" id="importFile" accept=".xlsx,.xls" required
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all">
+                    </div>
+                    <p class="text-sm text-gray-600 mt-2">
+                        Format: Keyword, Value, Not Value, Is Active
                     </p>
-                    <div class="mt-2">
-                        <button type="button" onclick="downloadTemplate()" class="text-blue-600 hover:text-blue-800 text-sm">
-                            <i class="fas fa-download mr-1"></i>Download Template Excel
+                    <div class="mt-4">
+                        <button type="button" onclick="downloadTemplate()" class="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center">
+                            <i class="fas fa-download mr-1"></i>
+                            Download Template Excel
                         </button>
                     </div>
                 </div>
-                <div id="importError" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"></div>
-                <div id="importSuccess" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4"></div>
-                <div class="flex space-x-2">
-                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg">
+                <div id="importError" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl flex items-center">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <span id="importErrorText"></span>
+                </div>
+                <div id="importSuccess" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-xl flex items-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <span id="importSuccessText"></span>
+                </div>
+                <div class="flex space-x-3">
+                    <button type="submit" class="flex-1 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white font-semibold py-3 rounded-xl transition-all duration-300 hover-lift">
+                        <i class="fas fa-upload mr-2"></i>
                         Import
                     </button>
-                    <button type="button" onclick="closeImportModal()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 rounded-lg">
+                    <button type="button" onclick="closeImportModal()" class="flex-1 glass-effect text-gray-700 font-semibold py-3 rounded-xl hover-lift">
+                        <i class="fas fa-times mr-2"></i>
                         Cancel
                     </button>
                 </div>
@@ -170,6 +493,11 @@
         document.getElementById('userDisplay').textContent = user.username || 'User';
 
         let allRules = [];
+        let currentPage = 1;
+        let pageSize = 25;
+        let totalPages = 1;
+        let totalRecords = 0;
+        let searchTimeout;
 
         function logout() {
             localStorage.removeItem('access_token');
@@ -177,11 +505,21 @@
             window.location.href = '/login';
         }
 
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            if (menu) {
+                menu.classList.toggle('hidden');
+            }
+        }
+
         async function loadRules(page = 1, limit = 25, search = '') {
             // Show loading state
             document.getElementById('tableBody').innerHTML =
-                `<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">
-                    <i class="fas fa-spinner fa-spin mr-2"></i>Loading...
+                `<tr><td colspan="5" class="px-6 py-12 text-center">
+                    <div class="flex flex-col items-center">
+                        <div class="w-12 h-12 border-4 border-primary-300 border-t-primary-600 rounded-full animate-spin mb-4"></div>
+                        <p class="text-gray-500 font-medium">Loading rules...</p>
+                    </div>
                 </td></tr>`;
 
             try {
@@ -200,19 +538,36 @@
                 if (data.success) {
                     allRules = data.data.rules || [];
                     displayRules(allRules);
+                    updateStatistics(allRules);
 
-                    // Update pagination if available
+                    // Update pagination info
                     if (data.data.pagination) {
-                        paginationManager.updateData(data.data.pagination);
-                        paginationManager.render();
+                        totalRecords = data.data.pagination.total;
+                        totalPages = data.data.pagination.total_pages || Math.ceil(totalRecords / pageSize);
+                        updatePaginationInfo();
                     }
                 } else {
                     document.getElementById('tableBody').innerHTML =
-                        `<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">Failed to load rules</td></tr>`;
+                        `<tr><td colspan="5" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center">
+                                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                                    <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+                                </div>
+                                <p class="text-red-500 font-medium">Failed to load rules</p>
+                            </div>
+                        </td></tr>`;
                 }
             } catch (error) {
                 document.getElementById('tableBody').innerHTML =
-                    `<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">Error: ${error.message}</td></tr>`;
+                    `<tr><td colspan="5" class="px-6 py-12 text-center">
+                        <div class="flex flex-col items-center">
+                            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                                <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+                            </div>
+                            <p class="text-red-500 font-medium">Error loading data</p>
+                            <p class="text-gray-400 text-sm mt-1">${error.message}</p>
+                        </div>
+                    </td></tr>`;
             }
         }
 
@@ -221,25 +576,44 @@
             tbody.innerHTML = '';
 
             if (rules.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No rules found</td></tr>`;
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center">
+                                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                    <i class="fas fa-inbox text-gray-400 text-2xl"></i>
+                                </div>
+                                <p class="text-gray-500 font-medium">No rules found</p>
+                                <p class="text-gray-400 text-sm mt-1">Try adjusting your search or add new rules</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
                 return;
             }
 
             rules.forEach(rule => {
-                const statusBadge = rule.is_active
-                    ? '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Active</span>'
-                    : '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Inactive</span>';
-
                 const row = `
-                    <tr>
-                        <td class="px-6 py-4">${safeValue(rule.keyword)}</td>
-                        <td class="px-6 py-4">${safeValue(rule.value)}</td>
-                        <td class="px-6 py-4">${statusBadge}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button onclick="editRule(${rule.id})" class="text-blue-600 hover:text-blue-900 mr-3">
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">${safeValue(rule.keyword)}</td>
+                        <td class="px-6 py-4 text-gray-900 max-w-xs truncate" title="${safeValue(rule.value)}">${safeValue(rule.value)}</td>
+                        <td class="px-6 py-4 text-gray-900">
+                            ${rule.not_value && rule.not_value.String ?
+                                `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800" title="${safeValue(rule.not_value.String)}">${safeValue(rule.not_value.String)}</span>` :
+                                '<span class="text-gray-400">-</span>'
+                            }
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            ${rule.is_active ?
+                                '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-check-circle mr-1"></i>Active</span>' :
+                                '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800"><i class="fas fa-times-circle mr-1"></i>Inactive</span>'
+                            }
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <button onclick="editRule(${rule.id})" class="text-primary-600 hover:text-primary-700 mr-3 p-2 rounded-lg hover:bg-primary-50 transition-colors">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button onclick="deleteRule(${rule.id})" class="text-red-600 hover:text-red-900">
+                            <button onclick="deleteRule(${rule.id})" class="text-red-600 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -247,6 +621,39 @@
                 `;
                 tbody.innerHTML += row;
             });
+        }
+
+        function updateStatistics(rules) {
+            const total = rules.length;
+            const active = rules.filter(rule => rule.is_active).length;
+            const withNotValue = rules.filter(rule => rule.not_value && rule.not_value.String && rule.not_value.String.trim() !== '').length;
+            const uniqueKeywords = [...new Set(rules.map(rule => rule.keyword))].length;
+
+            // Animate counter
+            animateCounter('totalRulesCount', total);
+            animateCounter('activeRulesCount', active);
+            animateCounter('withNotValueCount', withNotValue);
+            animateCounter('uniqueKeywordsCount', uniqueKeywords);
+        }
+
+        function animateCounter(elementId, targetValue) {
+            const element = document.getElementById(elementId);
+            const startValue = 0;
+            const duration = 1000;
+            const startTime = performance.now();
+
+            function updateCounter(currentTime) {
+                const elapsedTime = currentTime - startTime;
+                const progress = Math.min(elapsedTime / duration, 1);
+                const currentValue = Math.floor(startValue + (targetValue - startValue) * progress);
+                element.textContent = currentValue.toLocaleString();
+
+                if (progress < 1) {
+                    requestAnimationFrame(updateCounter);
+                }
+            }
+
+            requestAnimationFrame(updateCounter);
         }
 
         function safeValue(value, defaultValue = '') {
@@ -274,16 +681,18 @@
                 const data = await response.json();
 
                 if (data.success) {
+                    const rule = data.data;
                     document.getElementById('modalTitle').textContent = 'Edit Koreksi Rule';
-                    document.getElementById('ruleId').value = data.data.id;
-                    document.getElementById('keyword').value = data.data.keyword || '';
-                    document.getElementById('value').value = data.data.value || '';
-                    document.getElementById('isActive').checked = data.data.is_active;
+                    document.getElementById('ruleId').value = rule.id;
+                    document.getElementById('keyword').value = safeValue(rule.keyword);
+                    document.getElementById('value').value = safeValue(rule.value);
+                    document.getElementById('notValue').value = rule.not_value && rule.not_value.String ? safeValue(rule.not_value.String) : '';
+                    document.getElementById('isActive').checked = rule.is_active === true || rule.is_active === 1;
                     document.getElementById('errorMessage').classList.add('hidden');
                     document.getElementById('ruleModal').classList.remove('hidden');
                 }
             } catch (error) {
-                alert('Failed to load rule: ' + error.message);
+                alert('Error loading rule: ' + error.message);
             }
         }
 
@@ -299,12 +708,14 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    loadRules(paginationManager.currentPage, paginationManager.currentLimit, paginationManager.currentSearch);
+                    // Show success message
+                    showNotification('Rule deleted successfully', 'success');
+                    loadRules(currentPage, pageSize, document.getElementById('searchInput').value);
                 } else {
-                    alert('Failed to delete rule: ' + data.message);
+                    showNotification('Error: ' + data.message, 'error');
                 }
             } catch (error) {
-                alert('Failed to delete rule: ' + error.message);
+                showNotification('Error: ' + error.message, 'error');
             }
         }
 
@@ -312,15 +723,38 @@
             document.getElementById('ruleModal').classList.add('hidden');
         }
 
+        function showNotification(message, type) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-lg flex items-center space-x-3 fade-in ${
+                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            }`;
+            notification.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'}"></i>
+                <span>${message}</span>
+            `;
+
+            document.body.appendChild(notification);
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = 'fadeIn 0.5s ease-out reverse';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 500);
+            }, 3000);
+        }
+
         document.getElementById('ruleForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const id = document.getElementById('ruleId').value;
-            const keyword = document.getElementById('keyword').value;
-            const value = document.getElementById('value').value;
-            const is_active = document.getElementById('isActive').checked;
-
-            const payload = { keyword, value, is_active };
+            const payload = {
+                keyword: document.getElementById('keyword').value,
+                value: document.getElementById('value').value,
+                not_value: document.getElementById('notValue').value,
+                is_active: document.getElementById('isActive').checked
+            };
 
             try {
                 const url = id ? `/api/v1/koreksi-rules/${id}` : '/api/v1/koreksi-rules';
@@ -329,8 +763,8 @@
                 const response = await fetch(url, {
                     method: method,
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(payload)
                 });
@@ -339,45 +773,25 @@
 
                 if (data.success) {
                     closeModal();
-                    loadRules(paginationManager.currentPage, paginationManager.currentLimit, paginationManager.currentSearch);
+                    loadRules(currentPage, pageSize, document.getElementById('searchInput').value);
+                    showNotification(id ? 'Rule updated successfully' : 'Rule created successfully', 'success');
                 } else {
-                    document.getElementById('errorMessage').textContent = data.message;
+                    document.getElementById('errorText').textContent = data.message;
                     document.getElementById('errorMessage').classList.remove('hidden');
                 }
             } catch (error) {
-                document.getElementById('errorMessage').textContent = error.message;
+                document.getElementById('errorText').textContent = error.message;
                 document.getElementById('errorMessage').classList.remove('hidden');
             }
         });
 
-        async function exportRules() {
-            try {
-                const response = await fetch('/api/v1/koreksi-rules/export', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `koreksi_rules_export_${new Date().toISOString().split('T')[0]}.xlsx`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    a.remove();
-                } else {
-                    alert('Failed to export rules');
-                }
-            } catch (error) {
-                alert('Error: ' + error.message);
-            }
-        }
-
         async function downloadTemplate() {
             try {
                 const response = await fetch('/api/v1/koreksi-rules/template', {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
                 });
 
                 if (response.ok) {
@@ -388,13 +802,44 @@
                     a.download = 'koreksi_rules_import_template.xlsx';
                     document.body.appendChild(a);
                     a.click();
+                    document.body.removeChild(a);
                     window.URL.revokeObjectURL(url);
-                    a.remove();
+                    showNotification('Template downloaded successfully', 'success');
                 } else {
-                    alert('Failed to download template');
+                    showNotification('Failed to download template', 'error');
                 }
             } catch (error) {
-                alert('Error: ' + error.message);
+                showNotification('Error downloading template: ' + error.message, 'error');
+            }
+        }
+
+        async function exportRules() {
+            try {
+                const response = await fetch('/api/v1/koreksi-rules/export', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const filename = `koreksi_rules_export_${new Date().toISOString().slice(0,10)}.xlsx`;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    showNotification('Rules exported successfully', 'success');
+                } else {
+                    const data = await response.json();
+                    showNotification('Export failed: ' + (data.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showNotification('Error exporting rules: ' + error.message, 'error');
             }
         }
 
@@ -416,7 +861,7 @@
             const file = fileInput.files[0];
 
             if (!file) {
-                document.getElementById('importError').textContent = 'Please select a file';
+                document.getElementById('importErrorText').textContent = 'Please select a file';
                 document.getElementById('importError').classList.remove('hidden');
                 return;
             }
@@ -433,70 +878,189 @@
 
                 const data = await response.json();
 
-                if (data.success || response.status === 206) {
-                    document.getElementById('importError').classList.add('hidden');
-                    document.getElementById('importSuccess').textContent = data.message || 'Import successful!';
+                if (data.success || (response.status === 206 && data.success)) {
+                    // Handle success or partial success
+                    let successMessage = '';
+                    if (data.error_count > 0) {
+                        successMessage = `Import completed: ${data.total_imported} rules imported successfully, ${data.error_count} errors found.`;
+
+                        // Show error details
+                        if (data.errors && data.errors.length > 0) {
+                            successMessage += '\\n\\nFirst few errors:';
+                            data.errors.forEach((error, index) => {
+                                successMessage += `\\n${index + 1}. Row ${error.row}: ${error.error}`;
+                            });
+                        }
+
+                        // Show download link for error report
+                        if (data.error_report_path) {
+                            const filename = data.error_report_path.split('\\\\').pop();
+                            successMessage += `\\n\\n📊 Download detailed error report: `;
+                            const downloadLink = document.createElement('a');
+                            downloadLink.href = `/api/v1/koreksi-rules/error-report/${filename}`;
+                            downloadLink.textContent = filename;
+                            downloadLink.className = 'text-blue-600 hover:text-blue-800 underline';
+                            downloadLink.download = filename;
+
+                            const successDiv = document.getElementById('importSuccess');
+                            successDiv.innerHTML = successMessage + '<br>';
+                            successDiv.appendChild(downloadLink);
+                            successDiv.classList.remove('hidden');
+                            document.getElementById('importError').classList.add('hidden');
+                            return;
+                        }
+                    } else {
+                        successMessage = `Successfully imported ${data.total_imported} rules`;
+                    }
+
+                    document.getElementById('importSuccessText').textContent = successMessage;
                     document.getElementById('importSuccess').classList.remove('hidden');
+                    document.getElementById('importError').classList.add('hidden');
 
                     setTimeout(() => {
                         closeImportModal();
-                        loadRules(1, paginationManager.currentLimit, '');
-                    }, 2000);
+                        loadRules(1, pageSize, '');
+                    }, 3000);
                 } else {
-                    document.getElementById('importSuccess').classList.add('hidden');
-                    let errorMsg = data.message || 'Import failed';
+                    // Handle complete failure
+                    let errorMessage = data.message || 'Import failed';
+
+                    // Show error details if available
                     if (data.errors && data.errors.length > 0) {
-                        errorMsg += '\n\nFirst few errors:\n';
-                        data.errors.slice(0, 5).forEach(err => {
-                            errorMsg += `Row ${err.row}: ${err.message}\n`;
+                        errorMessage += '\\n\\nError details:';
+                        data.errors.slice(0, 5).forEach((error, index) => {
+                            errorMessage += `\\n${index + 1}. Row ${error.row}: ${error.error}`;
                         });
+
+                        if (data.errors.length > 5) {
+                            errorMessage += `\\n... and ${data.errors.length - 5} more errors`;
+                        }
                     }
-                    if (data.error_report_path) {
-                        errorMsg += '\n\nDownload full error report for details.';
-                    }
-                    document.getElementById('importError').textContent = errorMsg;
+
+                    document.getElementById('importErrorText').textContent = errorMessage;
                     document.getElementById('importError').classList.remove('hidden');
+                    document.getElementById('importSuccess').classList.add('hidden');
                 }
             } catch (error) {
-                document.getElementById('importSuccess').classList.add('hidden');
-                document.getElementById('importError').textContent = 'Error: ' + error.message;
+                document.getElementById('importErrorText').textContent = 'Error: ' + error.message;
                 document.getElementById('importError').classList.remove('hidden');
+                document.getElementById('importSuccess').classList.add('hidden');
             }
         });
 
-        // Initialize pagination manager
-        let paginationManager;
-        let isInitialized = false;
+        // Search functionality with debouncing
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                currentPage = 1;
+                loadRules(currentPage, pageSize, e.target.value);
+            }, 300);
+        });
 
-        function initializeApp() {
-            if (isInitialized) return;
-            isInitialized = true;
+        // Page size change
+        document.getElementById('limitSelect').addEventListener('change', (e) => {
+            pageSize = parseInt(e.target.value);
+            currentPage = 1;
+            loadRules(currentPage, pageSize, document.getElementById('searchInput').value);
+        });
 
-            paginationManager = new PaginationManager({
-                defaultLimit: 25,
-                limitOptions: [10, 25, 50, 100],
-                onPageChange: (page, limit, search) => loadRules(page, limit, search),
-                onLimitChange: (page, limit, search) => loadRules(page, limit, search),
-                onSearchChange: (page, limit, search) => loadRules(page, limit, search)
-            });
+        // Pagination functions
+        function updatePaginationInfo() {
+            const showingFrom = totalRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+            const showingTo = Math.min(currentPage * pageSize, totalRecords);
 
-            // Initialize pagination components (main container is the div with class max-w-7xl)
-            paginationManager.init('main-content');
+            document.getElementById('showingFrom').textContent = showingFrom;
+            document.getElementById('showingTo').textContent = showingTo;
+            document.getElementById('totalRecords').textContent = totalRecords;
+            document.getElementById('currentPageInfo').textContent = currentPage;
+            document.getElementById('totalPagesInfo').textContent = totalPages;
 
-            // Load initial data
-            loadRules();
+            // Update button states
+            document.getElementById('firstPageBtn').disabled = currentPage === 1;
+            document.getElementById('prevPageBtn').disabled = currentPage === 1;
+            document.getElementById('nextPageBtn').disabled = currentPage === totalPages || totalPages === 0;
+            document.getElementById('lastPageBtn').disabled = currentPage === totalPages || totalPages === 0;
+
+            // Update page numbers
+            updatePageNumbers();
         }
 
-        // Load data on page load
-        if (document.readyState === 'loading') {
-            // DOM not ready yet, wait for DOMContentLoaded
-            document.addEventListener('DOMContentLoaded', () => {
-                initializeApp();
-            });
-        } else {
-            // DOM already loaded, initialize now
-            initializeApp();
+        function updatePageNumbers() {
+            const pageNumbersContainer = document.getElementById('pageNumbers');
+            pageNumbersContainer.innerHTML = '';
+
+            if (totalPages <= 1) return;
+
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, currentPage + 2);
+
+            if (startPage > 1) {
+                addPageNumber(1);
+                if (startPage > 2) {
+                    pageNumbersContainer.innerHTML += '<span class="px-3 py-2 text-gray-400">...</span>';
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                addPageNumber(i);
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    pageNumbersContainer.innerHTML += '<span class="px-3 py-2 text-gray-400">...</span>';
+                }
+                addPageNumber(totalPages);
+            }
         }
+
+        function addPageNumber(pageNum) {
+            const pageNumbersContainer = document.getElementById('pageNumbers');
+            const button = document.createElement('button');
+            button.textContent = pageNum;
+            button.className = pageNum === currentPage
+                ? 'px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-600 to-secondary-600 rounded-lg'
+                : 'px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors';
+            button.onclick = () => goToPage(pageNum);
+            pageNumbersContainer.appendChild(button);
+        }
+
+        function goToPage(page) {
+            if (page === 'last') {
+                currentPage = totalPages;
+            } else {
+                currentPage = page;
+            }
+            loadRules(currentPage, pageSize, document.getElementById('searchInput').value);
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadRules(currentPage, pageSize, document.getElementById('searchInput').value);
+            }
+        }
+
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                loadRules(currentPage, pageSize, document.getElementById('searchInput').value);
+            }
+        }
+
+        // Add fade-in animation to page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const elements = document.querySelectorAll('.fade-in');
+            elements.forEach((el, index) => {
+                setTimeout(() => {
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(20px)';
+                    el.style.animation = 'fadeIn 0.6s ease-out forwards';
+                }, index * 100);
+            });
+        });
+
+        // Initialize and load data
+        loadRules();
     </script>
 </body>
 </html>

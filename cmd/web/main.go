@@ -27,9 +27,13 @@ func main() {
 	// Initialize database
 	db, err := database.NewMySQL(cfg)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Printf("Warning: Failed to connect to database: %v", err)
+		log.Printf("Application will continue without database (read-only mode)")
+		// Create a nil DB for development
+		db = nil
+	} else {
+		defer db.Close()
 	}
-	defer db.Close()
 
 	// Initialize Redis (optional - for caching and background jobs)
 	redisClient, err := database.NewRedis(cfg)

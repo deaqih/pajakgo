@@ -5,6 +5,7 @@ import (
 	"accounting-web/internal/repository"
 	"accounting-web/internal/service"
 	"accounting-web/internal/utils"
+	"database/sql"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -74,6 +75,7 @@ func (h *ObyekRuleHandler) CreateObyekRule(c *fiber.Ctx) error {
 	rule := &models.ObyekRule{
 		Keyword:  req.Keyword,
 		Value:    req.Value,
+		NotValue: sql.NullString{String: req.NotValue, Valid: req.NotValue != ""},
 		IsActive: true, // Default to active
 	}
 
@@ -107,6 +109,7 @@ func (h *ObyekRuleHandler) UpdateObyekRule(c *fiber.Ctx) error {
 
 	rule.Keyword = req.Keyword
 	rule.Value = req.Value
+	rule.NotValue = sql.NullString{String: req.NotValue, Valid: req.NotValue != ""}
 	rule.IsActive = req.IsActive
 
 	if err := h.rulesRepo.UpdateObyekRule(rule); err != nil {
@@ -157,13 +160,15 @@ func (h *ObyekRuleHandler) DownloadTemplate(c *fiber.Ctx) error {
 	// Create template with sample data
 	sampleRules := []models.ObyekRule{
 		{
-			Keyword:  "PPH 21",
-			Value:    "21",
+			Keyword:  "Rawat Inap",
+			Value:    "Rawat Inap",
+			NotValue: sql.NullString{String: "", Valid: false},
 			IsActive: true,
 		},
 		{
-			Keyword:  "PPH 23",
-			Value:    "23",
+			Keyword:  "Consultation",
+			Value:    "Consultation Fee",
+			NotValue: sql.NullString{String: "exclude", Valid: true},
 			IsActive: true,
 		},
 	}

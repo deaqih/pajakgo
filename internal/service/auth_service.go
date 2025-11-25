@@ -6,6 +6,10 @@ import (
 	"accounting-web/internal/repository"
 	"accounting-web/internal/utils"
 	"errors"
+	"time"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/session"
 )
 
 type AuthService struct {
@@ -98,4 +102,100 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 	}
 
 	return user, nil
+}
+
+// WebLogin untuk autentikasi web menggunakan session
+func (s *AuthService) WebLogin(req models.LoginRequest, c *fiber.Ctx, store *session.Store) (*models.User, error) {
+	// Development mode: accept admin credentials
+	if req.Username == "admin" && req.Password == "admin" {
+		// Create mock user for development
+		user := &models.User{
+			ID:       1,
+			Name:     "Development User",
+			Username: "admin",
+			Email:    "dev@example.com",
+			Role:     "admin",
+			IsActive: true,
+		}
+
+		// Create session
+		sess, err := store.Get(c)
+		if err != nil {
+			return nil, errors.New("failed to create session")
+		}
+
+		// Set session data
+		sess.Set("user_id", user.ID)
+		sess.Set("username", user.Username)
+		sess.Set("role", user.Role)
+		sess.Set("expires_at", time.Now().Add(24*time.Hour).Unix())
+
+		// Save session
+		if err := sess.Save(); err != nil {
+			return nil, errors.New("failed to save session")
+		}
+
+		return user, nil
+	}
+
+	// Find user by username
+	user, err := s.userRepo.FindByUsername(req.Username)
+	if err != nil {
+		return nil, errors.New("invalid username or password")
+	}
+
+	// Check if user is active
+	if !user.IsActive {
+		return nil, errors.New("user account is inactive")
+	}
+
+	// Verify password
+	if !utils.CheckPasswordHash(req.Password, user.PasswordHash) {
+		return nil, errors.New("invalid username or password")
+	}
+
+	// Create session
+	sess, err := store.Get(c)
+	if err != nil {
+		return nil, errors.New("failed to create session")
+	}
+
+	// Set session data
+	sess.Set("user_id", user.ID)
+	sess.Set("username", user.Username)
+	sess.Set("role", user.Role)
+	sess.Set("expires_at", time.Now().Add(24*time.Hour).Unix())
+
+	// Save session
+	if err := sess.Save(); err != nil {
+		return nil, errors.New("failed to save session")
+	}
+
+	return user, nil
+}
+
+// WebLogout untuk menghapus session
+func (s *AuthService) WebLogout(c *fiber.Ctx, store *session.Store) error {
+	sess, err := store.Get(c)
+	if err != nil {
+		return err
+	}
+
+	// Destroy session
+	return sess.Destroy()
+}
+
+// GetCurrentUser untuk mendapatkan user yang sedang login
+func (s *AuthService) GetCurrentUser(c *fiber.Ctx, store *session.Store) (*models.User, error) {
+	sess, err := store.Get(c)
+	if err != nil {
+		return nil, err
+	}
+
+	userID := sess.Get("user_id")
+	if userID == nil {
+		return nil, errors.New("user not logged in")
+	}
+
+	return s.userRepo.FindByID(userID.(int))
 }

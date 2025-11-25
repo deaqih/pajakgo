@@ -64,3 +64,7 @@ func ValidateToken(tokenString string, secret string) (*JWTClaims, error) {
 
 	return nil, jwt.ErrSignatureInvalid
 }
+
+func GetCurrentTimestamp() int64 {
+	return time.Now().Unix()
+}

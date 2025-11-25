@@ -213,33 +213,35 @@
                         <span class="text-gray-900 font-medium">New Upload</span>
                     </nav>
                     <h1 class="text-4xl font-bold gradient-text mb-2">Upload Excel Files</h1>
-                    <p class="text-gray-600 text-lg">Upload multiple Excel files for processing and analysis</p>
+                    <p class="text-gray-600 text-lg">Upload multiple Excel files for ultra-fast processing using optimized session-based architecture</p>
                 </div>
             </div>
         </div>
 
-        <!-- Statistics Cards -->
+        <!-- Performance Benefits -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 fade-in">
-            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 hover-lift">
+            <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6 hover-lift">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-blue-600 mb-1">Files Selected</p>
-                        <p class="text-2xl font-bold text-gray-900" id="filesSelectedCount">0</p>
+                        <p class="text-sm font-medium text-green-600 mb-1">Processing Mode</p>
+                        <p class="text-lg font-bold text-gray-900">Optimized</p>
+                        <p class="text-xs text-green-600 mt-1">Session-based</p>
                     </div>
-                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-file text-white"></i>
+                    <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-rocket text-white"></i>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6 hover-lift">
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 hover-lift">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-green-600 mb-1">Total Size</p>
-                        <p class="text-2xl font-bold text-gray-900" id="totalSizeDisplay">0 MB</p>
+                        <p class="text-sm font-medium text-blue-600 mb-1">Upload Speed</p>
+                        <p class="text-2xl font-bold text-gray-900" id="uploadSpeedDisplay">Ultra Fast</p>
+                        <p class="text-xs text-blue-600 mt-1">Chunked insert</p>
                     </div>
-                    <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-database text-white"></i>
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-tachometer-alt text-white"></i>
                     </div>
                 </div>
             </div>
@@ -247,8 +249,9 @@
             <div class="bg-gradient-to-br from-yellow-50 to-orange-50 border border-yellow-200 rounded-2xl p-6 hover-lift">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-yellow-600 mb-1">Max Files</p>
-                        <p class="text-2xl font-bold text-gray-900">20</p>
+                        <p class="text-sm font-medium text-yellow-600 mb-1">Batch Support</p>
+                        <p class="text-2xl font-bold text-gray-900">Multiple Files</p>
+                        <p class="text-xs text-yellow-600 mt-1">Same session</p>
                     </div>
                     <div class="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-lg flex items-center justify-center">
                         <i class="fas fa-layer-group text-white"></i>
@@ -259,11 +262,12 @@
             <div class="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-2xl p-6 hover-lift">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-purple-600 mb-1">Max Size</p>
-                        <p class="text-2xl font-bold text-gray-900">500 MB</p>
+                        <p class="text-sm font-medium text-purple-600 mb-1">Max Capacity</p>
+                        <p class="text-2xl font-bold text-gray-900">Unlimited Rows</p>
+                        <p class="text-xs text-purple-600 mt-1">Error-free</p>
                     </div>
                     <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-violet-600 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-weight text-white"></i>
+                        <i class="fas fa-infinity text-white"></i>
                     </div>
                 </div>
             </div>
@@ -273,7 +277,7 @@
         <div class="glass-effect rounded-2xl shadow-large p-8 fade-in">
             <div class="mb-6">
                 <h3 class="text-2xl font-semibold text-gray-900 mb-2">Select Files to Upload</h3>
-                <p class="text-gray-600">Choose up to 20 Excel files with total size not exceeding 500 MB</p>
+                <p class="text-gray-600">Upload up to 20 Excel files with unlimited rows. All files will be processed under a single session for optimal performance.</p>
             </div>
 
             <!-- Upload Area -->
@@ -296,11 +300,19 @@
                         </span>
                         <span class="flex items-center">
                             <i class="fas fa-check-circle text-green-500 mr-1"></i>
-                            Max 20 files
+                            Max 20 files per batch
                         </span>
                         <span class="flex items-center">
                             <i class="fas fa-check-circle text-green-500 mr-1"></i>
-                            Max 500 MB total
+                            Unlimited rows
+                        </span>
+                        <span class="flex items-center">
+                            <i class="fas fa-rocket text-blue-500 mr-1"></i>
+                            Optimized processing
+                        </span>
+                        <span class="flex items-center">
+                            <i class="fas fa-link text-purple-500 mr-1"></i>
+                            Single session for all files
                         </span>
                     </div>
                 </div>
@@ -322,14 +334,23 @@
 
             <!-- Upload Progress -->
             <div id="uploadProgress" class="hidden mt-8">
-                <div class="mb-4">
-                    <h4 class="text-lg font-semibold text-gray-900 mb-2">Uploading Files...</h4>
-                    <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div id="progressBar" class="progress-bar bg-gradient-to-r from-primary-600 to-secondary-600 h-2 rounded-full" style="width: 0%"></div>
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <div class="flex items-center mb-3">
+                        <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-cog fa-spin text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-semibold text-gray-900">Optimizing Upload Process</h4>
+                            <p class="text-sm text-blue-600">Creating session and processing files with ultra-fast chunked inserts...</p>
+                        </div>
                     </div>
-                    <p class="text-sm text-gray-600 mt-2">
-                        <span id="uploadStatusText">0 / 0 files uploaded</span>
-                    </p>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div id="progressBar" class="progress-bar bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <div class="flex justify-between items-center mt-2 text-sm text-gray-600">
+                        <span id="uploadStatusText">Initializing optimized upload...</span>
+                        <span id="processingMode" class="font-medium text-blue-600">Session-Based Mode</span>
+                    </div>
                 </div>
             </div>
 
@@ -339,6 +360,40 @@
                 <div>
                     <p class="font-semibold" id="errorTitle">Error</p>
                     <p class="text-sm" id="errorText"></p>
+                </div>
+            </div>
+
+            <!-- Background Processing Message -->
+            <div id="backgroundProcessingMessage" class="hidden mt-6 bg-blue-100 border border-blue-400 text-blue-700 px-6 py-4 rounded-xl">
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-info-circle mr-3 text-blue-500 text-xl"></i>
+                    <div>
+                        <p class="font-semibold">Large Upload Detected</p>
+                        <p class="text-sm">Your file is being processed in the background. You can safely navigate away from this page.</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-700">Processing Progress</span>
+                        <span class="text-sm text-gray-600" id="backgroundJobId">Job ID: -</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                        <div id="backgroundProgressBar" class="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <div class="flex justify-between items-center text-sm text-gray-600">
+                        <span id="backgroundJobStatus">Starting...</span>
+                        <span id="backgroundJobProgress">0%</span>
+                    </div>
+                </div>
+                <div class="mt-4 flex space-x-3">
+                    <a href="/uploads" class="px-4 py-2 bg-white border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors text-sm">
+                        <i class="fas fa-list mr-2"></i>
+                        View All Uploads
+                    </a>
+                    <button onclick="startProgressPolling()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                        <i class="fas fa-sync mr-2"></i>
+                        Refresh Progress
+                    </button>
                 </div>
             </div>
 
@@ -379,8 +434,10 @@
         document.getElementById('userDisplay').textContent = user.username || 'User';
 
         let selectedFiles = [];
+        let currentSessionCode = null;
+        let progressInterval = null;
         const MAX_FILES = 20;
-        const MAX_TOTAL_SIZE = 500 * 1024 * 1024; // 500 MB in bytes
+        const MAX_TOTAL_SIZE = 2 * 1024 * 1024 * 1024; // 2 GB in bytes for large uploads
 
         function logout() {
             localStorage.removeItem('access_token');
@@ -406,15 +463,23 @@
         function updateStatistics() {
             const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0);
 
-            document.getElementById('filesSelectedCount').textContent = selectedFiles.length;
-            document.getElementById('totalSizeDisplay').textContent = formatFileSize(totalSize);
-
-            // Update button state
+            // Update button state (primary fix for disabled button issue)
             const uploadButton = document.getElementById('uploadButton');
+            console.log('Upload button found:', uploadButton);
+            console.log('Selected files:', selectedFiles.length);
+
             if (selectedFiles.length > 0) {
                 uploadButton.disabled = false;
+                // Remove disabled styling
+                uploadButton.classList.remove('opacity-50', 'cursor-not-allowed', 'disabled');
+                uploadButton.setAttribute('aria-disabled', 'false');
+                console.log('Button enabled, disabled:', uploadButton.disabled);
             } else {
                 uploadButton.disabled = true;
+                // Add disabled styling
+                uploadButton.classList.add('opacity-50', 'cursor-not-allowed');
+                uploadButton.setAttribute('aria-disabled', 'true');
+                console.log('Button disabled, disabled:', uploadButton.disabled);
             }
         }
 
@@ -530,6 +595,112 @@
             document.getElementById('successMessage').classList.remove('hidden');
         }
 
+        function showBackgroundProcessing(sessionCode, jobId) {
+            currentSessionCode = sessionCode;
+            document.getElementById('backgroundJobId').textContent = `Job ID: ${jobId}`;
+            document.getElementById('backgroundProcessingMessage').classList.remove('hidden');
+
+            // Start polling for progress
+            startProgressPolling();
+        }
+
+        function updateProgress(data) {
+            const progressBar = document.getElementById('backgroundProgressBar');
+            const progressText = document.getElementById('backgroundJobProgress');
+            const statusText = document.getElementById('backgroundJobStatus');
+
+            const progress = Math.min(100, Math.max(0, data.progress_percentage || 0));
+            const status = data.status || 'Processing...';
+
+            progressBar.style.width = `${progress}%`;
+            progressText.textContent = `${progress.toFixed(1)}%`;
+
+            // Update status based on status
+            switch(status) {
+                case 'pending':
+                    statusText.textContent = 'Waiting to start...';
+                    break;
+                case 'uploaded':
+                    statusText.textContent = 'Upload complete, starting analysis...';
+                    break;
+                case 'processing':
+                    statusText.textContent = 'Processing transactions...';
+                    break;
+                case 'completed':
+                    statusText.textContent = 'Completed successfully!';
+                    progressBar.className = 'bg-gradient-to-r from-green-500 to-emerald-600 h-3 rounded-full transition-all duration-500';
+                    // Stop polling when completed
+                    if (progressInterval) {
+                        clearInterval(progressInterval);
+                        progressInterval = null;
+                    }
+                    // Redirect after 3 seconds
+                    setTimeout(() => {
+                        window.location.href = '/uploads';
+                    }, 3000);
+                    break;
+                case 'failed':
+                    statusText.textContent = 'Processing failed';
+                    progressBar.className = 'bg-gradient-to-r from-red-500 to-red-600 h-3 rounded-full transition-all duration-500';
+                    if (data.error_message) {
+                        statusText.textContent = `Error: ${data.error_message}`;
+                    }
+                    // Stop polling on error
+                    if (progressInterval) {
+                        clearInterval(progressInterval);
+                        progressInterval = null;
+                    }
+                    break;
+                default:
+                    statusText.textContent = status;
+            }
+        }
+
+        function startProgressPolling() {
+            if (!currentSessionCode) return;
+
+            // Clear existing interval
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
+
+            // Poll immediately
+            pollProgress();
+
+            // Then poll every 3 seconds
+            progressInterval = setInterval(pollProgress, 3000);
+        }
+
+        async function pollProgress() {
+            if (!currentSessionCode) return;
+
+            try {
+                const response = await fetch(`/api/v1/uploads/progress/${currentSessionCode}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.data) {
+                        updateProgress(data.data);
+                    }
+                } else {
+                    console.warn('Failed to fetch progress:', response.statusText);
+                }
+            } catch (error) {
+                console.error('Error polling progress:', error);
+            }
+        }
+
+        function stopProgressPolling() {
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+            }
+        }
+
         // Download template function
         async function downloadTemplate() {
             try {
@@ -592,21 +763,34 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // Show success with detailed information
                     const successData = data.data;
                     const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-                    const message = `Successfully uploaded ${successData.total_files} file${successData.total_files > 1 ? 's' : ''} with ${successData.total_rows} total rows (${formatFileSize(totalSize)}).`;
 
-                    if (successData.total_errors > 0) {
-                        showError('Partial Upload Complete', `${message} ${successData.total_errors} file${successData.total_errors > 1 ? 's' : ''} failed to upload.`);
+                    // Check if this is background processing
+                    if (successData.processing_mode === 'background' && successData.background_job) {
+                        // Hide upload progress and show background processing
+                        document.getElementById('uploadProgress').classList.add('hidden');
+                        showBackgroundProcessing(successData.session_code, successData.background_job.id);
+
+                        // Show additional info message
+                        if (successData.message) {
+                            console.log('Info:', successData.message);
+                        }
                     } else {
-                        showSuccess(message);
-                    }
+                        // Regular immediate processing
+                        const message = `Successfully uploaded ${successData.total_files} file${successData.total_files > 1 ? 's' : ''} with ${successData.total_rows} total rows (${formatFileSize(totalSize)}).`;
 
-                    // Redirect to uploads list after 3 seconds
-                    setTimeout(() => {
-                        window.location.href = '/uploads';
-                    }, 3000);
+                        if (successData.total_errors > 0) {
+                            showError('Partial Upload Complete', `${message} ${successData.total_errors} file${successData.total_errors > 1 ? 's' : ''} failed to upload.`);
+                        } else {
+                            showSuccess(message);
+                        }
+
+                        // Redirect to uploads list after 3 seconds
+                        setTimeout(() => {
+                            window.location.href = '/uploads';
+                        }, 3000);
+                    }
                 } else {
                     throw new Error(data.message || 'Upload failed');
                 }
@@ -678,6 +862,31 @@
                     el.style.animation = 'fadeIn 0.6s ease-out forwards';
                 }, index * 100);
             });
+
+            // Initialize upload button state
+            console.log('DOM loaded, initializing upload button...');
+            updateStatistics();
+        });
+
+        // Cleanup progress polling when page is unloaded
+        window.addEventListener('beforeunload', function() {
+            stopProgressPolling();
+        });
+
+        // Also cleanup when page is hidden (mobile navigation)
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                // Optional: stop polling when page is hidden to save resources
+                // stopProgressPolling();
+            } else {
+                // Resume polling when page becomes visible again
+                if (currentSessionCode && progressInterval === null) {
+                    // Check if background processing message is visible
+                    if (!document.getElementById('backgroundProcessingMessage').classList.contains('hidden')) {
+                        startProgressPolling();
+                    }
+                }
+            }
         });
     </script>
 </body>

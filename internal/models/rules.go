@@ -1,11 +1,15 @@
 package models
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 type KoreksiRule struct {
 	ID        int       `db:"id" json:"id"`
 	Keyword   string    `db:"keyword" json:"keyword"`
 	Value     string    `db:"value" json:"value"`
+	NotValue  sql.NullString `db:"not_value" json:"not_value"`
 	IsActive  bool      `db:"is_active" json:"is_active"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
@@ -15,6 +19,7 @@ type ObyekRule struct {
 	ID        int       `db:"id" json:"id"`
 	Keyword   string    `db:"keyword" json:"keyword"`
 	Value     string    `db:"value" json:"value"`
+	NotValue  sql.NullString `db:"not_value" json:"not_value"`
 	IsActive  bool      `db:"is_active" json:"is_active"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
@@ -54,6 +59,7 @@ type RuleRequest struct {
 type KoreksiRuleRequest struct {
 	Keyword  string `json:"keyword" validate:"required"`
 	Value    string `json:"value" validate:"required"`
+	NotValue string `json:"not_value"`
 	IsActive bool   `json:"is_active"`
 }
 
@@ -77,6 +83,7 @@ type KoreksiRuleImportResult struct {
 type ObyekRuleRequest struct {
 	Keyword  string `json:"keyword" validate:"required"`
 	Value    string `json:"value" validate:"required"`
+	NotValue string `json:"not_value"`
 	IsActive bool   `json:"is_active"`
 }
 

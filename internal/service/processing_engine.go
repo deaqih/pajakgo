@@ -91,7 +91,15 @@ func (e *ProcessingEngine) ProcessTransaction(tx *models.TransactionData) error 
 
 	// STEP 1: Analisa Nature Akun
 	if account, exists := e.accounts[tx.Account]; exists {
-		tx.AnalisaNatureAkun = &account.Nature
+		if account.Nature != "" {
+			tx.AnalisaNatureAkun = &account.Nature
+		} else if account.AccountName != "" {
+			// If nature is empty, fallback to account name
+			tx.AnalisaNatureAkun = &account.AccountName
+		} else {
+			// If both are empty, use account code instead
+			tx.AnalisaNatureAkun = &tx.Account
+		}
 	}
 
 	// STEP 2: Koreksi - Match keterangan with koreksi_rules
@@ -126,8 +134,7 @@ func (e *ProcessingEngine) ProcessTransaction(tx *models.TransactionData) error 
 	e.calculateOutputTax(tx, keterangan)
 
 	// STEP 8: UM Pajak DB (TBD - not implemented yet)
-	umPajakDBValue := 0.0
-	tx.UmPajakDB = &umPajakDBValue
+	tx.UmPajakDB = models.NullableNumericFloat64{Value: 0.0, Valid: false}
 
 	// STEP 9: Analisa Tambahan (TBD - not implemented yet)
 	analisaTambahanValue := ""
@@ -175,15 +182,15 @@ func (e *ProcessingEngine) calculateWithholdingTax(tx *models.TransactionData, k
 
 			switch rule.TaxType {
 			case "wth_21":
-				tx.Wth21Cr = &amount
+				tx.Wth21Cr = models.NullableNumericFloat64{Value: amount, Valid: true}
 			case "wth_23":
-				tx.Wth23Cr = &amount
+				tx.Wth23Cr = models.NullableNumericFloat64{Value: amount, Valid: true}
 			case "wth_26":
-				tx.Wth26Cr = &amount
+				tx.Wth26Cr = models.NullableNumericFloat64{Value: amount, Valid: true}
 			case "wth_4_2":
-				tx.Wth42Cr = &amount
+				tx.Wth42Cr = models.NullableNumericFloat64{Value: amount, Valid: true}
 			case "wth_15":
-				tx.Wth15Cr = &amount
+				tx.Wth15Cr = models.NullableNumericFloat64{Value: amount, Valid: true}
 			}
 		}
 	}
@@ -192,8 +199,7 @@ func (e *ProcessingEngine) calculateWithholdingTax(tx *models.TransactionData, k
 // calculateInputTax calculates PM DB (Input Tax)
 func (e *ProcessingEngine) calculateInputTax(tx *models.TransactionData, keterangan string) {
 	if tx.Debet <= 0 {
-		pmDBValue := 0.0
-		tx.PmDB = &pmDBValue
+		tx.PmDB = models.NullableNumericFloat64{Value: 0.0, Valid: false}
 		return
 	}
 
@@ -201,21 +207,18 @@ func (e *ProcessingEngine) calculateInputTax(tx *models.TransactionData, keteran
 	for _, keyword := range e.inputTaxKeywords {
 		keywordLower := strings.ToLower(keyword)
 		if strings.Contains(keterangan, keywordLower) {
-			pmDBValue := tx.Debet
-			tx.PmDB = &pmDBValue
+			tx.PmDB = models.NullableNumericFloat64{Value: tx.Debet, Valid: true}
 			return
 		}
 	}
 
-	pmDBValue := 0.0
-	tx.PmDB = &pmDBValue
+	tx.PmDB = models.NullableNumericFloat64{Value: 0.0, Valid: false}
 }
 
 // calculateOutputTax calculates PK CR (Output Tax)
 func (e *ProcessingEngine) calculateOutputTax(tx *models.TransactionData, keterangan string) {
 	if tx.Credit <= 0 {
-		pkCrValue := 0.0
-		tx.PkCr = &pkCrValue
+		tx.PkCr = models.NullableNumericFloat64{Value: 0.0, Valid: false}
 		return
 	}
 
@@ -223,14 +226,12 @@ func (e *ProcessingEngine) calculateOutputTax(tx *models.TransactionData, ketera
 	for _, keyword := range e.outputTaxKeywords {
 		keywordLower := strings.ToLower(keyword)
 		if strings.Contains(keterangan, keywordLower) {
-			pkCrValue := tx.Credit
-			tx.PkCr = &pkCrValue
+			tx.PkCr = models.NullableNumericFloat64{Value: tx.Credit, Valid: true}
 			return
 		}
 	}
 
-	pkCrValue := 0.0
-	tx.PkCr = &pkCrValue
+	tx.PkCr = models.NullableNumericFloat64{Value: 0.0, Valid: false}
 }
 
 // ProcessBatch processes a batch of transactions

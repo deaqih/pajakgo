@@ -72,7 +72,7 @@ func Load() (*Config, error) {
 		DBMaxIdleConns:    getEnvAsInt("DB_MAX_IDLE_CONNS", 25),
 		DBConnMaxLifetime: getEnvAsDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
 
-		RedisHost:     getEnv("REDIS_HOST", "localhost"),
+		RedisHost:     getEnv("REDIS_HOST", "127.0.0.1"),
 		RedisPort:     getEnv("REDIS_PORT", "6379"),
 		RedisPassword: getEnv("REDIS_PASSWORD", ""),
 		RedisDB:       getEnvAsInt("REDIS_DB", 0),
@@ -87,7 +87,7 @@ func Load() (*Config, error) {
 		BatchSize:         getEnvAsInt("BATCH_SIZE", 5000),
 		WorkerConcurrency: getEnvAsInt("WORKER_CONCURRENCY", 4),
 
-		AsynqRedisAddr:     getEnv("ASYNQ_REDIS_ADDR", "localhost:6379"),
+		AsynqRedisAddr:     getEnv("ASYNQ_REDIS_ADDR", "127.0.0.1:6379"),
 		AsynqRedisPassword: getEnv("ASYNQ_REDIS_PASSWORD", ""),
 		AsynqRedisDB:       getEnvAsInt("ASYNQ_REDIS_DB", 0),
 	}

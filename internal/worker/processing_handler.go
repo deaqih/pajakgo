@@ -57,6 +57,18 @@ func (h *ProcessingTaskHandler) Handle(ctx context.Context, task *asynq.Task) er
 		return fmt.Errorf("failed to get session: %w", err)
 	}
 
+	// Check if session has been canceled
+	if session.Status == "canceled" {
+		log.Printf("Session %s has been canceled, skipping processing", payload.SessionCode)
+		return nil // Don't return error, just skip processing
+	}
+
+	// Check if session is already completed or failed
+	if session.Status == "completed" || session.Status == "failed" {
+		log.Printf("Session %s is already %s, skipping processing", payload.SessionCode, session.Status)
+		return nil // Don't return error, just skip processing
+	}
+
 	// Load rules into processing engine
 	if err := h.processingEngine.LoadRules(); err != nil {
 		log.Printf("Failed to load rules: %v", err)

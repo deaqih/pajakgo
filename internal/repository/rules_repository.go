@@ -27,9 +27,9 @@ func (r *RulesRepository) GetKoreksiRules(limit, offset int, search string) ([]m
 	whereClause := ""
 	args := []interface{}{}
 	if search != "" {
-		whereClause = " WHERE keyword LIKE ? OR value LIKE ?"
+		whereClause = " WHERE keyword LIKE ? OR value LIKE ? OR not_value LIKE ?"
 		searchParam := "%" + search + "%"
-		args = append(args, searchParam, searchParam)
+		args = append(args, searchParam, searchParam, searchParam)
 		countQuery += whereClause
 		selectQuery += whereClause
 	}
@@ -67,8 +67,8 @@ func (r *RulesRepository) GetActiveKoreksiRules() ([]models.KoreksiRule, error) 
 }
 
 func (r *RulesRepository) CreateKoreksiRule(rule *models.KoreksiRule) error {
-	query := `INSERT INTO koreksi_rules (keyword, value, is_active)
-	          VALUES (:keyword, :value, :is_active)`
+	query := `INSERT INTO koreksi_rules (keyword, value, not_value, is_active)
+	          VALUES (:keyword, :value, :not_value, :is_active)`
 	result, err := r.db.NamedExec(query, rule)
 	if err != nil {
 		return err
@@ -79,7 +79,7 @@ func (r *RulesRepository) CreateKoreksiRule(rule *models.KoreksiRule) error {
 }
 
 func (r *RulesRepository) UpdateKoreksiRule(rule *models.KoreksiRule) error {
-	query := `UPDATE koreksi_rules SET keyword = :keyword, value = :value,
+	query := `UPDATE koreksi_rules SET keyword = :keyword, value = :value, not_value = :not_value,
 	          is_active = :is_active WHERE id = :id`
 	_, err := r.db.NamedExec(query, rule)
 	return err
@@ -112,7 +112,7 @@ func (r *RulesRepository) BulkInsertKoreksiRules(rules []models.KoreksiRule) err
 	}
 	defer tx.Rollback()
 
-	query := `INSERT INTO koreksi_rules (keyword, value, is_active) VALUES (:keyword, :value, :is_active)`
+	query := `INSERT INTO koreksi_rules (keyword, value, not_value, is_active) VALUES (:keyword, :value, :not_value, :is_active)`
 
 	for _, rule := range rules {
 		_, err := tx.NamedExec(query, rule)
@@ -144,9 +144,9 @@ func (r *RulesRepository) GetObyekRules(limit, offset int, search string) ([]mod
 	whereClause := ""
 	args := []interface{}{}
 	if search != "" {
-		whereClause = " WHERE keyword LIKE ? OR value LIKE ?"
+		whereClause = " WHERE keyword LIKE ? OR value LIKE ? OR not_value LIKE ?"
 		searchParam := "%" + search + "%"
-		args = append(args, searchParam, searchParam)
+		args = append(args, searchParam, searchParam, searchParam)
 		countQuery += whereClause
 		selectQuery += whereClause
 	}
@@ -184,8 +184,8 @@ func (r *RulesRepository) GetActiveObyekRules() ([]models.ObyekRule, error) {
 }
 
 func (r *RulesRepository) CreateObyekRule(rule *models.ObyekRule) error {
-	query := `INSERT INTO obyek_rules (keyword, value, is_active)
-	          VALUES (:keyword, :value, :is_active)`
+	query := `INSERT INTO obyek_rules (keyword, value, not_value, is_active)
+	          VALUES (:keyword, :value, :not_value, :is_active)`
 	result, err := r.db.NamedExec(query, rule)
 	if err != nil {
 		return err
@@ -196,7 +196,7 @@ func (r *RulesRepository) CreateObyekRule(rule *models.ObyekRule) error {
 }
 
 func (r *RulesRepository) UpdateObyekRule(rule *models.ObyekRule) error {
-	query := `UPDATE obyek_rules SET keyword = :keyword, value = :value,
+	query := `UPDATE obyek_rules SET keyword = :keyword, value = :value, not_value = :not_value,
 	          is_active = :is_active WHERE id = :id`
 	_, err := r.db.NamedExec(query, rule)
 	return err
@@ -229,7 +229,7 @@ func (r *RulesRepository) BulkInsertObyekRules(rules []models.ObyekRule) error {
 	}
 	defer tx.Rollback()
 
-	query := `INSERT INTO obyek_rules (keyword, value, is_active) VALUES (:keyword, :value, :is_active)`
+	query := `INSERT INTO obyek_rules (keyword, value, not_value, is_active) VALUES (:keyword, :value, :not_value, :is_active)`
 
 	for _, rule := range rules {
 		_, err := tx.NamedExec(query, rule)
