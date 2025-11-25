@@ -217,6 +217,19 @@ type TransactionData struct {
 	// Output Fields
 	AnalisaNatureAkun    *string `db:"analisa_nature_akun" json:"analisa_nature_akun,omitempty"`
 	AnalisaKoreksiObyek  *string `db:"analisa_koreksi_obyek" json:"analisa_koreksi_obyek,omitempty"`
+
+	// Fields from JOIN with accounts table
+	NatureAkun           *string `db:"nature_akun" json:"nature_akun,omitempty"`
+	AnalisaKOT           *string `db:"analisa_kot" json:"analisa_kot,omitempty"`
+
+	// Withholding account names from window function queries
+	WithholdingPph42     *string `db:"withholding_pph_42" json:"withholding_pph_42,omitempty"`
+	WithholdingPph15     *string `db:"withholding_pph_15" json:"withholding_pph_15,omitempty"`
+	WithholdingPph21     *string `db:"withholding_pph_21" json:"withholding_pph_21,omitempty"`
+	WithholdingPph23     *string `db:"withholding_pph_23" json:"withholding_pph_23,omitempty"`
+	WithholdingPph26     *string `db:"withholding_pph_26" json:"withholding_pph_26,omitempty"`
+	PkCrAccount          *string `db:"pk_cr_account" json:"pk_cr_account,omitempty"`
+	PmDbAccount          *string `db:"pm_db_account" json:"pm_db_account,omitempty"`
 	Koreksi              *string `db:"koreksi" json:"koreksi,omitempty"`
 	Obyek                *string `db:"obyek" json:"obyek,omitempty"`
 	UmPajakDB            NullableNumericFloat64 `db:"um_pajak_db" json:"um_pajak_db,omitempty"`
@@ -242,6 +255,15 @@ func (td *TransactionData) MarshalJSON() ([]byte, error) {
 	aux := &struct {
 		AnalisaNatureAkun    *string                `json:"analisa_nature_akun,omitempty"`
 		AnalisaKoreksiObyek  *string                `json:"analisa_koreksi_obyek,omitempty"`
+		NatureAkun           *string                `json:"nature_akun,omitempty"`
+		AnalisaKOT           *string                `json:"analisa_kot,omitempty"`
+		WithholdingPph42     *string                `json:"withholding_pph_42,omitempty"`
+		WithholdingPph15     *string                `json:"withholding_pph_15,omitempty"`
+		WithholdingPph21     *string                `json:"withholding_pph_21,omitempty"`
+		WithholdingPph23     *string                `json:"withholding_pph_23,omitempty"`
+		WithholdingPph26     *string                `json:"withholding_pph_26,omitempty"`
+		PkCrAccount          *string                `json:"pk_cr_account,omitempty"`
+		PmDbAccount          *string                `json:"pm_db_account,omitempty"`
 		Koreksi              *string                `json:"koreksi,omitempty"`
 		Obyek                *string                `json:"obyek,omitempty"`
 		UmPajakDB            *float64               `json:"um_pajak_db,omitempty"`
@@ -302,6 +324,15 @@ func (td *TransactionData) MarshalJSON() ([]byte, error) {
 
 	aux.AnalisaNatureAkun = td.AnalisaNatureAkun
 	aux.AnalisaKoreksiObyek = td.AnalisaKoreksiObyek
+	aux.NatureAkun = td.NatureAkun
+	aux.AnalisaKOT = td.AnalisaKOT
+	aux.WithholdingPph42 = td.WithholdingPph42
+	aux.WithholdingPph15 = td.WithholdingPph15
+	aux.WithholdingPph21 = td.WithholdingPph21
+	aux.WithholdingPph23 = td.WithholdingPph23
+	aux.WithholdingPph26 = td.WithholdingPph26
+	aux.PkCrAccount = td.PkCrAccount
+	aux.PmDbAccount = td.PmDbAccount
 	aux.Koreksi = td.Koreksi
 	aux.Obyek = td.Obyek
 	aux.UmPajakDB = umPajakDB
@@ -361,4 +392,26 @@ func (b *BatchUploadSession) ToUploadSession() map[string]interface{} {
 		"updated_at":     b.UpdatedAt,
 		"is_batch":       true,
 	}
+}
+
+// BackgroundJob represents a background processing job for large uploads
+type BackgroundJob struct {
+	ID            int        `db:"id" json:"id"`
+	SessionCode   string     `db:"session_code" json:"session_code"`
+	UserID        int        `db:"user_id" json:"user_id"`
+	Filename      string     `db:"filename" json:"filename"`
+	TotalRows     int        `db:"total_rows" json:"total_rows"`
+	ProcessedRows int        `db:"processed_rows" json:"processed_rows"`
+	Status        string     `db:"status" json:"status"` // pending, processing, completed, failed
+	ErrorMessage  *string    `db:"error_message" json:"error_message,omitempty"`
+	CreatedAt     time.Time  `db:"created_at" json:"created_at"`
+	UpdatedAt     time.Time  `db:"updated_at" json:"updated_at"`
+}
+
+// GetProgressPercentage returns the progress as a percentage
+func (j *BackgroundJob) GetProgressPercentage() float64 {
+	if j.TotalRows == 0 {
+		return 0
+	}
+	return float64(j.ProcessedRows) / float64(j.TotalRows) * 100
 }

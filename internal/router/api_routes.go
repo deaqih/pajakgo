@@ -147,11 +147,18 @@ func SetupAPIRoutes(
 	uploads.Get("/", uploadHandler.GetSessions)
 	uploads.Get("/template", uploadHandler.DownloadTemplate)
 	uploads.Get("/:id", uploadHandler.GetSessionDetail)
+	uploads.Get("/session/:session_code", uploadHandler.GetSessionDetailBySessionCode) // New session code-based detail
+	uploads.Get("/session/:session_code/transactions", uploadHandler.GetTransactionsBySessionCode) // New optimized route - MOVED UP
 	uploads.Get("/:id/transactions", uploadHandler.GetTransactions)
 	uploads.Post("/:id/process", uploadHandler.ProcessSession)
 	uploads.Post("/:id/cancel", uploadHandler.CancelSession)
 	uploads.Get("/:id/export", uploadHandler.ExportSession)
+	uploads.Get("/session/:session_code/export", uploadHandler.ExportSessionByCode)
 	uploads.Delete("/:id", uploadHandler.DeleteSession)
+	uploads.Get("/progress/:session_code", uploadHandler.GetUploadProgress)
+
+	// Transaction routes
+	protected.Put("/transactions/:id", uploadHandler.UpdateTransaction)
 
 	// Job progress routes
 	jobs := protected.Group("/jobs")

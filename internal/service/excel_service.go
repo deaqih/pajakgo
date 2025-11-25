@@ -2,7 +2,10 @@ package service
 
 import (
 	"accounting-web/internal/models"
+	"database/sql"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/xuri/excelize/v2"
@@ -68,7 +71,11 @@ func (s *ExcelService) ParseTransactionFile(filePath string) ([]models.Transacti
 		if dateStr != "" {
 			parsedDate, err := parseDate(dateStr)
 			if err == nil {
-				tx.PostingDate = parsedDate
+				tx.PostingDate = &parsedDate
+			} else {
+				// If parsing fails, set to current date as fallback
+				now := time.Now()
+				tx.PostingDate = &now
 			}
 		}
 
@@ -98,13 +105,12 @@ func (s *ExcelService) ExportTransactions(transactions []models.TransactionData,
 		return err
 	}
 
-	// Set headers
+	// Set headers - match exactly with upload detail page columns
 	headers := []string{
 		"Document Type", "Document Number", "Posting Date", "Account", "Account Name",
-		"Keterangan", "Debet", "Credit", "Net",
-		"Analisa Nature Akun", "Koreksi", "Obyek", "Analisa Koreksi-Obyek",
-		"UM Pajak DB", "PM DB", "WHT 21 CR", "WHT 23 CR", "WHT 26 CR", "WHT 4.2 CR",
-		"WHT 15 CR", "PK CR", "Analisa Tambahan",
+		"Keterangan", "Debet", "Credit", "Net", "Analisa Nature Akun", "Analisa K-O-T",
+		"Analisa Tambahan", "Koreksi", "Obyek", "UM Pajak DB", "PM DB", "Wth 21 Cr", "Wth 23 Cr",
+		"Wth 26 Cr", "Wth 4.2 Cr", "Wth 15 Cr", "PK Cr", "Processed",
 	}
 
 	// Write headers
@@ -116,35 +122,93 @@ func (s *ExcelService) ExportTransactions(transactions []models.TransactionData,
 	// Write data
 	for rowIdx, tx := range transactions {
 		row := rowIdx + 2
+
+		// Helper function to convert NullableNumericFloat64 to empty string for Excel
+		nullableToStringFloat64 := func(n models.NullableNumericFloat64) string {
+			if n.Valid {
+				return fmt.Sprintf("%.2f", n.Value)
+			}
+			return ""
+		}
+
+		// Helper function to safely convert string pointers to string
+		safeString := func(s *string) string {
+			if s == nil {
+				return ""
+			}
+			return *s
+		}
+
+		// Handle PostingDate pointer
+		var postingDateStr string
+		if tx.PostingDate != nil {
+			postingDateStr = tx.PostingDate.Format("2006-01-02")
+		} else {
+			postingDateStr = ""
+		}
+
 		values := []interface{}{
 			tx.DocumentType,
 			tx.DocumentNumber,
-			tx.PostingDate.Format("2006-01-02"),
+			postingDateStr,
 			tx.Account,
 			tx.AccountName,
 			tx.Keterangan,
-			tx.Debet,
-			tx.Credit,
-			tx.Net,
-			tx.AnalisaNatureAkun,
-			tx.Koreksi,
-			tx.Obyek,
-			tx.AnalisaKoreksiObyek,
-			tx.UmPajakDB,
-			tx.PmDB,
-			tx.Wth21Cr,
-			tx.Wth23Cr,
-			tx.Wth26Cr,
-			tx.Wth42Cr,
-			tx.Wth15Cr,
-			tx.PkCr,
-			tx.AnalisaTambahan,
+			fmt.Sprintf("%.2f", tx.Debet),
+			fmt.Sprintf("%.2f", tx.Credit),
+			fmt.Sprintf("%.2f", tx.Net),
+			safeString(tx.NatureAkun),
+			safeString(tx.AnalisaKOT),
+			safeString(tx.AnalisaTambahan),
+			safeString(tx.Koreksi),
+			safeString(tx.Obyek),
+			nullableToStringFloat64(tx.UmPajakDB),
+			nullableToStringFloat64(tx.PmDB),
+			safeString(tx.WithholdingPph21),
+			safeString(tx.WithholdingPph23),
+			safeString(tx.WithholdingPph26),
+			safeString(tx.WithholdingPph42),
+			safeString(tx.WithholdingPph15),
+			safeString(tx.PkCrAccount),
+			func() string {
+				if tx.IsProcessed {
+					return "Yes"
+				}
+				return "No"
+			}(),
 		}
 
 		for colIdx, value := range values {
 			cell := fmt.Sprintf("%s%d", getColumnName(colIdx), row)
 			f.SetCellValue(sheetName, cell, value)
 		}
+	}
+
+	// Set header style
+	headerStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"#E0E0E0"}, Pattern: 1},
+	})
+	f.SetCellStyle(sheetName, "A1", fmt.Sprintf("%s1", getColumnName(len(headers)-1)), headerStyle)
+
+	// Set column widths for better readability
+	columnWidths := []float64{15, 20, 15, 12, 25, 30, 15, 15, 15, 15, 15, 15, 15, 15, 12, 15, 20, 20, 20, 20, 20, 20, 20, 12}
+
+	for i, width := range columnWidths {
+		if i < len(columnWidths) {
+			colName := getColumnName(i)
+			f.SetColWidth(sheetName, colName, colName, width)
+		}
+	}
+
+	// Format numeric columns (Debet, Credit, Net, UM Pajak DB, PM DB)
+	numericColumns := []int{7, 8, 9, 15, 16} // Excel column indices (1-based)
+	for _, col := range numericColumns {
+		colName := getColumnName(col - 1)
+		numericStyle, _ := f.NewStyle(&excelize.Style{
+			NumFmt: 2, // Number format with 2 decimal places
+		})
+		f.SetColStyle(sheetName, colName, numericStyle)
 	}
 
 	// Set active sheet
@@ -231,7 +295,7 @@ func (s *ExcelService) GenerateTransactionTemplate(outputPath string) error {
 	}
 
 	for i, instruction := range instructions {
-		cell := fmt.Sprintf("A%d", instructionsStartRow + i)
+		cell := fmt.Sprintf("A%d", instructionsStartRow+i)
 		f.SetCellValue(sheetName, cell, instruction)
 	}
 
@@ -257,18 +321,43 @@ func getCellValue(row []string, index int) string {
 }
 
 func parseFloat(s string) float64 {
+	// Trim whitespace
+	s = strings.TrimSpace(s)
+
+	// Handle dash "-" (with or without whitespace) as 0
+	if s == "-" || s == "" {
+		return 0.0
+	}
+
+	// Remove commas (thousand separators) if present
+	s = strings.ReplaceAll(s, ",", "")
+
+	// Use strconv.ParseFloat for better accuracy
+	if result, err := strconv.ParseFloat(s, 64); err == nil {
+		return result
+	}
+
+	// Fallback to fmt.Sscanf if strconv fails
 	var result float64
 	fmt.Sscanf(s, "%f", &result)
 	return result
 }
 
 func parseDate(s string) (time.Time, error) {
+	// Trim whitespace first
+	s = strings.TrimSpace(s)
+
 	formats := []string{
-		"2006-01-02",
-		"02/01/2006",
-		"02-01-2006",
-		"01/02/2006",
-		"2006/01/02",
+		"01/02/2006",            // MM/DD/YYYY (US format)
+		"01-02-06",              // MM-DD-YY (Excel US format with dash)
+		"01/02/2006 3:04:05 PM", // MM/DD/YYYY with time
+		"01/02/06",              // MM/DD/YY (short year)
+		"2006-01-02",            // YYYY-MM-DD (ISO standard)
+		"2006/01/02",            // YYYY/MM/DD
+		"02-01-2006",            // DD-MM-YYYY (European format)
+		"02/01/2006",            // DD/MM/YYYY (European format)
+		"Jan 02, 2006",          // Month DD, YYYY
+		"02 Jan 2006",           // DD Month YYYY
 	}
 
 	for _, format := range formats {
@@ -664,6 +753,13 @@ func parseBoolValue(s string) bool {
 	return s == "Yes" || s == "yes" || s == "Y" || s == "y" || s == "1" || s == "true" || s == "TRUE"
 }
 
+func getNullStringValue(ns sql.NullString) string {
+	if ns.Valid {
+		return ns.String
+	}
+	return ""
+}
+
 // ExportKoreksiRules exports koreksi rules to Excel file
 func (s *ExcelService) ExportKoreksiRules(rules []models.KoreksiRule, filePath string) error {
 	f := excelize.NewFile()
@@ -677,7 +773,7 @@ func (s *ExcelService) ExportKoreksiRules(rules []models.KoreksiRule, filePath s
 
 	// Set headers
 	headers := []string{
-		"Keyword", "Value", "Is Active",
+		"Keyword", "Value", "Not Value", "Is Active",
 	}
 
 	for i, header := range headers {
@@ -697,18 +793,20 @@ func (s *ExcelService) ExportKoreksiRules(rules []models.KoreksiRule, filePath s
 		row := i + 2
 		f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), rule.Keyword)
 		f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), rule.Value)
+		f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), getNullStringValue(rule.NotValue))
 
 		isActiveStr := "No"
 		if rule.IsActive {
 			isActiveStr = "Yes"
 		}
-		f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), isActiveStr)
+		f.SetCellValue(sheetName, fmt.Sprintf("D%d", row), isActiveStr)
 	}
 
 	// Set column widths
 	f.SetColWidth(sheetName, "A", "A", 30)
 	f.SetColWidth(sheetName, "B", "B", 30)
-	f.SetColWidth(sheetName, "C", "C", 12)
+	f.SetColWidth(sheetName, "C", "C", 30)
+	f.SetColWidth(sheetName, "D", "D", 12)
 
 	f.SetActiveSheet(index)
 	f.DeleteSheet("Sheet1")
@@ -742,7 +840,7 @@ func (s *ExcelService) ParseKoreksiRulesWithValidation(filePath string) (*models
 
 	// Validate headers
 	expectedHeaders := []string{
-		"Keyword", "Value", "Is Active",
+		"Keyword", "Value", "Not Value", "Is Active",
 	}
 
 	header := rows[0]
@@ -771,10 +869,11 @@ func (s *ExcelService) ParseKoreksiRulesWithValidation(filePath string) (*models
 		// Extract values
 		keyword := getStringValue(row, 0)
 		value := getStringValue(row, 1)
-		isActiveStr := getStringValue(row, 2)
+		notValue := getStringValue(row, 2)
+		isActiveStr := getStringValue(row, 3)
 
 		// Validate fields
-		rowErrors := s.validateKoreksiRuleRow(i+1, keyword, value, isActiveStr)
+		rowErrors := s.validateKoreksiRuleRow(i+1, keyword, value, notValue, isActiveStr)
 
 		if len(rowErrors) > 0 {
 			result.ValidationErrors = append(result.ValidationErrors, rowErrors...)
@@ -784,6 +883,7 @@ func (s *ExcelService) ParseKoreksiRulesWithValidation(filePath string) (*models
 			rule := models.KoreksiRule{
 				Keyword:  keyword,
 				Value:    value,
+				NotValue: sql.NullString{String: notValue, Valid: notValue != ""},
 				IsActive: parseBoolValue(isActiveStr),
 			}
 			result.ValidRules = append(result.ValidRules, rule)
@@ -795,7 +895,7 @@ func (s *ExcelService) ParseKoreksiRulesWithValidation(filePath string) (*models
 }
 
 // validateKoreksiRuleRow validates a single koreksi rule row and returns validation errors
-func (s *ExcelService) validateKoreksiRuleRow(rowNum int, keyword, value, isActiveStr string) []models.KoreksiRuleValidationError {
+func (s *ExcelService) validateKoreksiRuleRow(rowNum int, keyword, value, notValue, isActiveStr string) []models.KoreksiRuleValidationError {
 	var errors []models.KoreksiRuleValidationError
 
 	// Validate Keyword (Required)
@@ -829,6 +929,16 @@ func (s *ExcelService) validateKoreksiRuleRow(rowNum int, keyword, value, isActi
 			Field:   "Value",
 			Value:   value,
 			Message: "Value cannot exceed 255 characters",
+		})
+	}
+
+	// Validate Not Value (Optional)
+	if len(notValue) > 255 {
+		errors = append(errors, models.KoreksiRuleValidationError{
+			Row:     rowNum,
+			Field:   "Not Value",
+			Value:   notValue,
+			Message: "Not Value cannot exceed 255 characters",
 		})
 	}
 
@@ -940,7 +1050,7 @@ func (s *ExcelService) ExportObyekRules(rules []models.ObyekRule, filePath strin
 
 	// Set headers
 	headers := []string{
-		"Keyword", "Value", "Is Active",
+		"Keyword", "Value", "Not Value", "Is Active",
 	}
 
 	for i, header := range headers {
@@ -960,18 +1070,20 @@ func (s *ExcelService) ExportObyekRules(rules []models.ObyekRule, filePath strin
 		row := i + 2
 		f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), rule.Keyword)
 		f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), rule.Value)
+		f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), getNullStringValue(rule.NotValue))
 
 		isActiveStr := "No"
 		if rule.IsActive {
 			isActiveStr = "Yes"
 		}
-		f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), isActiveStr)
+		f.SetCellValue(sheetName, fmt.Sprintf("D%d", row), isActiveStr)
 	}
 
 	// Set column widths
 	f.SetColWidth(sheetName, "A", "A", 30)
 	f.SetColWidth(sheetName, "B", "B", 30)
-	f.SetColWidth(sheetName, "C", "C", 12)
+	f.SetColWidth(sheetName, "C", "C", 30)
+	f.SetColWidth(sheetName, "D", "D", 12)
 
 	f.SetActiveSheet(index)
 	f.DeleteSheet("Sheet1")
@@ -1005,7 +1117,7 @@ func (s *ExcelService) ParseObyekRulesWithValidation(filePath string) (*models.O
 
 	// Validate headers
 	expectedHeaders := []string{
-		"Keyword", "Value", "Is Active",
+		"Keyword", "Value", "Not Value", "Is Active",
 	}
 
 	header := rows[0]
@@ -1034,10 +1146,11 @@ func (s *ExcelService) ParseObyekRulesWithValidation(filePath string) (*models.O
 		// Extract values
 		keyword := getStringValue(row, 0)
 		value := getStringValue(row, 1)
-		isActiveStr := getStringValue(row, 2)
+		notValue := getStringValue(row, 2)
+		isActiveStr := getStringValue(row, 3)
 
 		// Validate fields
-		rowErrors := s.validateObyekRuleRow(i+1, keyword, value, isActiveStr)
+		rowErrors := s.validateObyekRuleRow(i+1, keyword, value, notValue, isActiveStr)
 
 		if len(rowErrors) > 0 {
 			result.ValidationErrors = append(result.ValidationErrors, rowErrors...)
@@ -1047,6 +1160,7 @@ func (s *ExcelService) ParseObyekRulesWithValidation(filePath string) (*models.O
 			rule := models.ObyekRule{
 				Keyword:  keyword,
 				Value:    value,
+				NotValue: sql.NullString{String: notValue, Valid: notValue != ""},
 				IsActive: parseBoolValue(isActiveStr),
 			}
 			result.ValidRules = append(result.ValidRules, rule)
@@ -1058,7 +1172,7 @@ func (s *ExcelService) ParseObyekRulesWithValidation(filePath string) (*models.O
 }
 
 // validateObyekRuleRow validates a single obyek rule row and returns validation errors
-func (s *ExcelService) validateObyekRuleRow(rowNum int, keyword, value, isActiveStr string) []models.ObyekRuleValidationError {
+func (s *ExcelService) validateObyekRuleRow(rowNum int, keyword, value, notValue, isActiveStr string) []models.ObyekRuleValidationError {
 	var errors []models.ObyekRuleValidationError
 
 	// Validate Keyword (Required)
@@ -1092,6 +1206,16 @@ func (s *ExcelService) validateObyekRuleRow(rowNum int, keyword, value, isActive
 			Field:   "Value",
 			Value:   value,
 			Message: "Value cannot exceed 255 characters",
+		})
+	}
+
+	// Validate Not Value (Optional)
+	if len(notValue) > 255 {
+		errors = append(errors, models.ObyekRuleValidationError{
+			Row:     rowNum,
+			Field:   "Not Value",
+			Value:   notValue,
+			Message: "Not Value cannot exceed 255 characters",
 		})
 	}
 

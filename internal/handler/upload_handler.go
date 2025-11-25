@@ -8,6 +8,7 @@ import (
 	"accounting-web/internal/utils"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -80,8 +81,8 @@ func (h *UploadHandler) UploadMultipleFiles(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, fmt.Sprintf("Maximum %d files allowed per upload", MAX_FILES), nil)
 	}
 
-	// Validate total size limit (500MB)
-	const MAX_TOTAL_SIZE = 500 * 1024 * 1024
+	// Validate total size limit (2GB for large uploads)
+	const MAX_TOTAL_SIZE = 2 * 1024 * 1024 * 1024
 	var totalSize int64
 	for _, file := range files {
 		totalSize += file.Size
@@ -91,12 +92,37 @@ func (h *UploadHandler) UploadMultipleFiles(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, fmt.Sprintf("Total size exceeds maximum limit of %s", formatFileSize(MAX_TOTAL_SIZE)), nil)
 	}
 
-	// Create upload session
+	// Create upload session - one session for all files
 	sessionCode := fmt.Sprintf("BATCH-%s", uuid.New().String()[:8])
 	var uploadResults []map[string]interface{}
+	var allTransactions []models.TransactionData
+	var totalRows int
+
+	// Check if this should be processed in background (large uploads)
+	const BACKGROUND_THRESHOLD = 50000 // 50k rows trigger background processing
+
+	// Create upload session first with estimated total
+	session := &models.UploadSession{
+		SessionCode: sessionCode,
+		UserID:      userID,
+		Filename:    "Processing...", // Will be updated later
+		FilePath:    h.cfg.UploadPath,
+		TotalRows:   0, // Will be updated after parsing
+		Status:      "processing", // Set to processing immediately
+	}
+
+	// Create session record
+	err = h.uploadRepo.CreateSession(session)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create upload session", err)
+	}
+
+	fmt.Printf("Created upload session: %s (ID: %d)\n", sessionCode, session.ID)
 
 	// Process each file
 	for i, file := range files {
+		fmt.Printf("PROCESSING FILE %d: %s (session_code: %s)\n", i+1, file.Filename, sessionCode)
+
 		// Validate file type
 		ext := filepath.Ext(file.Filename)
 		if ext != ".xlsx" && ext != ".xls" {
@@ -130,7 +156,7 @@ func (h *UploadHandler) UploadMultipleFiles(c *fiber.Ctx) error {
 		}
 
 		// Parse Excel file
-		fmt.Printf("Starting to parse file: %s (size: %d bytes)\n", file.Filename, file.Size)
+		fmt.Printf("Starting to parse file: %s (size: %d bytes, session_code: %s)\n", file.Filename, file.Size, sessionCode)
 		startTime := time.Now()
 
 		transactions, err := h.excelService.ParseTransactionFile(filePath)
@@ -144,45 +170,49 @@ func (h *UploadHandler) UploadMultipleFiles(c *fiber.Ctx) error {
 		}
 
 		parseTime := time.Since(startTime)
-		fmt.Printf("Parsed %d rows in %v\n", len(transactions), parseTime)
+		fmt.Printf("Parsed %d rows in %v (session_code: %s, filename: %s)\n", len(transactions), parseTime, sessionCode, file.Filename)
 
-		// Save to database
-		for _, transaction := range transactions {
-			transaction.SessionCode = sessionCode
-			transaction.UserID = userID
-			transaction.FilePath = filePath
-			transaction.Filename = file.Filename
-			fmt.Printf("DEBUG: Setting transaction session_code: %s for file: %s\n", sessionCode, file.Filename)
+		// Add to total rows for background processing decision
+		totalRows += len(transactions)
+
+		// Prepare transactions for saving with session_code only (session_id = 0)
+		transactionsToSave := make([]models.TransactionData, len(transactions))
+		for i, transaction := range transactions {
+			transactionsToSave[i] = transaction
+			transactionsToSave[i].SessionID = 0 // Explicitly set to 0
+			transactionsToSave[i].SessionCode = sessionCode
+			transactionsToSave[i].UserID = userID
+			transactionsToSave[i].FilePath = filePath
+			transactionsToSave[i].Filename = file.Filename
+
+			// Debug first few transactions per file
+			if i < 3 {
+				fmt.Printf("DEBUG FILE %d: Transaction %d will use session_code='%s', filename='%s'\n",
+					i+1, i+1, sessionCode, file.Filename)
+			}
 		}
 
-		err = h.uploadRepo.CreateMultipleTransactions(transactions)
-		if err != nil {
-			uploadResults = append(uploadResults, map[string]interface{}{
-				"filename": file.Filename,
-				"success": false,
-				"error":    fmt.Sprintf("Failed to save transactions: %v", err),
-			})
-			continue
-		}
+		allTransactions = append(allTransactions, transactionsToSave...)
 
 		uploadResults = append(uploadResults, map[string]interface{}{
-			"filename": file.Filename,
-			"success":  true,
-			"rows":     len(transactions),
-			"size":     file.Size,
+			"filename":   file.Filename,
+			"success":    true,
+			"rows":       len(transactions),
+			"size":       file.Size,
 			"parse_time": parseTime.String(),
+			"session_code": sessionCode, // Add session_code to response for debugging
 		})
 	}
 
 	// Calculate statistics
-	totalRows := 0
 	totalFiles := 0
 	totalErrors := 0
 	var firstFileName string
+	var fileNames []string
 	for _, result := range uploadResults {
 		if result["success"].(bool) {
-			totalRows += result["rows"].(int)
 			totalFiles++
+			fileNames = append(fileNames, result["filename"].(string))
 			if firstFileName == "" {
 				firstFileName = result["filename"].(string)
 			}
@@ -191,48 +221,185 @@ func (h *UploadHandler) UploadMultipleFiles(c *fiber.Ctx) error {
 		}
 	}
 
-	// Create upload session record if at least one file was processed successfully
-	if totalFiles > 0 {
-		status := "uploaded"
-		if totalErrors > 0 {
-			status = "uploaded" // Some files failed but batch has some success
-		}
+	if totalFiles == 0 {
+		// Delete the session since no valid files
+		h.uploadRepo.DeleteSession(session.ID)
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "No valid files were processed", nil)
+	}
 
-		session := &models.UploadSession{
-			SessionCode: sessionCode,
-			UserID:      userID,
-			Filename:    fmt.Sprintf("Batch: %d files (%s)", totalFiles, firstFileName),
-			FilePath:    h.cfg.UploadPath,
-			TotalRows:   totalRows,
-			Status:      status,
-		}
+	// Update session with final details
+	session.TotalRows = totalRows
+	if totalFiles == 1 {
+		session.Filename = firstFileName
+	} else {
+		session.Filename = fmt.Sprintf("Batch: %d files (%s)", totalFiles, firstFileName)
+	}
+	err = h.uploadRepo.UpdateSession(session)
+	if err != nil {
+		fmt.Printf("WARNING: Failed to update session: %v\n", err)
+	}
 
-		fmt.Printf("Creating upload session for session_code: %s, user_id: %d\n", sessionCode, userID)
-		err = h.uploadRepo.CreateSession(session)
+	// Process immediately (faster - skip background processing for now)
+	return h.processUploadOptimized(c, sessionCode, session.ID, userID, session.Filename, totalRows, allTransactions, uploadResults)
+}
+
+// processLargeUploadInBackground handles large uploads with background processing
+func (h *UploadHandler) processLargeUploadInBackground(c *fiber.Ctx, sessionCode string, userID int, firstFileName string, totalRows int, transactions []models.TransactionData, uploadResults []map[string]interface{}) error {
+	fmt.Printf("Processing large upload in background: %s (%d rows)\n", sessionCode, totalRows)
+
+	// Create background job record
+	backgroundJob, err := h.uploadRepo.CreateBackgroundJob(sessionCode, userID, firstFileName, totalRows)
+	if err != nil {
+		fmt.Printf("ERROR: Failed to create background job: %v\n", err)
+		// Fall back to immediate processing
+		return h.processUploadImmediately(c, sessionCode, userID, firstFileName, totalRows, transactions, uploadResults)
+	}
+
+	// Insert all transactions in chunks using the improved chunking function
+	fmt.Printf("Inserting %d transactions to database...\n", len(transactions))
+	insertStart := time.Now()
+
+	err = h.uploadRepo.CreateMultipleTransactions(transactions)
+	if err != nil {
+		// Update background job with error
+		errorMsg := fmt.Sprintf("Failed to insert transactions: %v", err)
+		h.uploadRepo.UpdateBackgroundJobProgress(backgroundJob.ID, 0, "failed", &errorMsg)
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to save transactions", err)
+	}
+
+	insertTime := time.Since(insertStart)
+	fmt.Printf("Successfully inserted %d transactions in %v\n", len(transactions), insertTime)
+
+	// Update background job with initial progress
+	h.uploadRepo.UpdateBackgroundJobProgress(backgroundJob.ID, len(transactions), "uploaded", nil)
+
+	// Queue background processing task
+	if h.asynqClient != nil {
+		payload, _ := json.Marshal(fiber.Map{
+			"session_code": sessionCode,
+			"background_job_id": backgroundJob.ID,
+		})
+
+		task := asynq.NewTask("upload:process_large", payload, asynq.MaxRetry(3))
+		_, err = h.asynqClient.Enqueue(task)
 		if err != nil {
-			// Log error but don't fail the upload - transactions are already saved
-			fmt.Printf("ERROR: Failed to create upload session record: %v\n", err)
-		} else {
-			fmt.Printf("SUCCESS: Created upload session with ID: %d\n", session.ID)
+			fmt.Printf("WARNING: Failed to queue background processing: %v\n", err)
+			// Don't fail the upload, transactions are already saved
+		}
+	}
 
-			// Now update transactions with the actual session_id
-			fmt.Printf("Updating transactions session_id for session_code: %s -> session_id: %d\n", sessionCode, session.ID)
-			err = h.uploadRepo.UpdateTransactionsSessionID(sessionCode, session.ID)
-			if err != nil {
-				// Log error but don't fail the upload
-				fmt.Printf("ERROR: Failed to update transactions with session_id: %v\n", err)
-			} else {
-				fmt.Printf("SUCCESS: Updated transactions with session_id: %d\n", session.ID)
-			}
+	// Return immediate response
+	return utils.SuccessResponse(c, "Large upload queued for processing", fiber.Map{
+		"session_code":   sessionCode,
+		"total_files":   len(uploadResults),
+		"total_errors":   0,
+		"total_rows":    totalRows,
+		"upload_results": uploadResults,
+		"background_job": backgroundJob,
+		"processing_mode": "background",
+		"message":        "File berhasil diupload dan akan diproses di background. Halaman ini dapat direfresh untuk melihat progress.",
+	})
+}
+
+// processUploadOptimized handles uploads with optimized processing using session_code only
+func (h *UploadHandler) processUploadOptimized(c *fiber.Ctx, sessionCode string, sessionID int, userID int, filename string, totalRows int, transactions []models.TransactionData, uploadResults []map[string]interface{}) error {
+	fmt.Printf("Processing upload optimized: %s (%d rows) using session_code only\n", sessionCode, totalRows)
+
+	// Insert all transactions using the improved chunking function
+	fmt.Printf("Inserting %d transactions to database with session_code: %s\n", len(transactions), sessionCode)
+	insertStart := time.Now()
+
+	err := h.uploadRepo.CreateMultipleTransactions(transactions)
+	if err != nil {
+		// Update session status to failed
+		h.uploadRepo.UpdateSessionStatus(sessionID, "failed")
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to save transactions", err)
+	}
+
+	insertTime := time.Since(insertStart)
+	fmt.Printf("Successfully inserted %d transactions in %v\n", len(transactions), insertTime)
+
+	// Update session with final data: status, filename, and total_rows
+	session := &models.UploadSession{
+		ID:          sessionID,
+		Filename:    filename,
+		TotalRows:   totalRows,
+		Status:      "uploaded",
+	}
+
+	err = h.uploadRepo.UpdateSession(session)
+	if err != nil {
+		fmt.Printf("WARNING: Failed to update session with final data: %v\n", err)
+		// Fallback to status-only update
+		err = h.uploadRepo.UpdateSessionStatus(sessionID, "uploaded")
+		if err != nil {
+			fmt.Printf("WARNING: Failed to update session status: %v\n", err)
+		}
+	} else {
+		fmt.Printf("SUCCESS: Updated session with filename='%s', total_rows=%d, status='uploaded'\n", filename, totalRows)
+	}
+
+	return utils.SuccessResponse(c, "Files uploaded successfully", fiber.Map{
+		"session_code":    sessionCode,
+		"session_id":      sessionID,
+		"total_files":    len(uploadResults),
+		"total_errors":    0,
+		"total_rows":     totalRows,
+		"upload_results":  uploadResults,
+		"processing_mode": "optimized",
+		"message":        "Files successfully uploaded and ready for processing. Use session_code for all operations.",
+	})
+}
+
+// processUploadImmediately handles smaller uploads with immediate processing
+func (h *UploadHandler) processUploadImmediately(c *fiber.Ctx, sessionCode string, userID int, firstFileName string, totalRows int, transactions []models.TransactionData, uploadResults []map[string]interface{}) error {
+	fmt.Printf("Processing upload immediately: %s (%d rows)\n", sessionCode, totalRows)
+
+	// Insert all transactions using the improved chunking function
+	fmt.Printf("Inserting %d transactions to database...\n", len(transactions))
+	insertStart := time.Now()
+
+	err := h.uploadRepo.CreateMultipleTransactions(transactions)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to save transactions", err)
+	}
+
+	insertTime := time.Since(insertStart)
+	fmt.Printf("Successfully inserted %d transactions in %v\n", len(transactions), insertTime)
+
+	// Create upload session record
+	session := &models.UploadSession{
+		SessionCode: sessionCode,
+		UserID:      userID,
+		Filename:    fmt.Sprintf("Batch: %d files (%s)", len(uploadResults), firstFileName),
+		FilePath:    h.cfg.UploadPath,
+		TotalRows:   totalRows,
+		Status:      "uploaded",
+	}
+
+	fmt.Printf("Creating upload session for session_code: %s, user_id: %d\n", sessionCode, userID)
+	err = h.uploadRepo.CreateSession(session)
+	if err != nil {
+		fmt.Printf("ERROR: Failed to create upload session record: %v\n", err)
+	} else {
+		fmt.Printf("SUCCESS: Created upload session with ID: %d\n", session.ID)
+
+		// Update transactions with the actual session_id
+		err = h.uploadRepo.UpdateTransactionsSessionID(sessionCode, session.ID)
+		if err != nil {
+			fmt.Printf("ERROR: Failed to update transactions with session_id: %v\n", err)
+		} else {
+			fmt.Printf("SUCCESS: Updated transactions with session_id: %d\n", session.ID)
 		}
 	}
 
 	return utils.SuccessResponse(c, "Files uploaded successfully", fiber.Map{
-		"session_code":   sessionCode,
-		"total_files":   totalFiles,
-		"total_errors":   totalErrors,
-		"total_rows":    totalRows,
-		"upload_results": uploadResults,
+		"session_code":    sessionCode,
+		"total_files":    len(uploadResults),
+		"total_errors":    0,
+		"total_rows":     totalRows,
+		"upload_results":  uploadResults,
+		"processing_mode": "immediate",
 	})
 }
 
@@ -378,26 +545,20 @@ func (h *UploadHandler) GetSessions(c *fiber.Ctx) error {
 		filterUserID = userID
 	}
 
-	// Get regular upload sessions
-	var regularSessions []models.UploadSession
-	var batchSessions []models.BatchUploadSession
-	var totalRegular, totalBatch int
+	// Get upload sessions - OPTIMIZED: Only query upload_sessions table for ultra-fast loading
+	var sessions []models.UploadSession
+	var total int
 	var err error
 
-	regularSessions, totalRegular, err = h.uploadRepo.GetSessions(params.Limit, offset, filterUserID)
+	// Use ultra-fast optimized query - only touches upload_sessions table
+	sessions, total, err = h.uploadRepo.GetSessionsOptimized(params.Limit, offset, filterUserID)
 	if err != nil {
-		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve regular sessions", err)
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve sessions", err)
 	}
 
-	// Get batch upload sessions (from transaction_data with session_id = 0)
-	batchSessions, totalBatch, err = h.uploadRepo.GetBatchUploads(params.Limit, offset, filterUserID)
-	if err != nil {
-		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve batch sessions", err)
-	}
-
-	// Combine sessions for response
-	var allSessions []interface{}
-	for _, session := range regularSessions {
+	// Convert sessions to map format for response
+	var allSessions []map[string]interface{}
+	for _, session := range sessions {
 		sessionMap := map[string]interface{}{
 			"id":             session.ID,
 			"session_code":   session.SessionCode,
@@ -416,13 +577,8 @@ func (h *UploadHandler) GetSessions(c *fiber.Ctx) error {
 		allSessions = append(allSessions, sessionMap)
 	}
 
-	for _, batch := range batchSessions {
-		allSessions = append(allSessions, batch.ToUploadSession())
-	}
-
-	// Combine totals and calculate pagination
-	totalCombined := totalRegular + totalBatch
-	pagination := utils.CalculatePagination(params.Page, params.Limit, int64(totalCombined))
+	// Calculate pagination - simplified since we're only using upload_sessions
+	pagination := utils.CalculatePagination(params.Page, params.Limit, int64(total))
 
 	responseData := fiber.Map{
 		"sessions": allSessions,
@@ -438,12 +594,36 @@ func (h *UploadHandler) GetSessionDetail(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid session ID", err)
 	}
 
+	// Get session by ID first to get session_code
 	session, err := h.uploadRepo.GetSessionByID(id)
 	if err != nil {
 		return utils.ErrorResponse(c, fiber.StatusNotFound, "Session not found", err)
 	}
 
-	return utils.SuccessResponse(c, "Session retrieved successfully", session)
+	// Use session_code to get enhanced session detail with transaction statistics
+	sessionDetail, err := h.uploadRepo.GetSessionDetailBySessionCode(session.SessionCode)
+	if err != nil {
+		// Fallback to basic session info if detailed query fails
+		return utils.SuccessResponse(c, "Session retrieved successfully", session)
+	}
+
+	return utils.SuccessResponse(c, "Session detail retrieved successfully", sessionDetail)
+}
+
+// GetSessionDetailBySessionCode gets session details using session_code
+func (h *UploadHandler) GetSessionDetailBySessionCode(c *fiber.Ctx) error {
+	sessionCode := c.Params("session_code")
+	if sessionCode == "" {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Session code is required", nil)
+	}
+
+	// Get session detail using session_code
+	sessionDetail, err := h.uploadRepo.GetSessionDetailBySessionCode(sessionCode)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusNotFound, "Session not found", err)
+	}
+
+	return utils.SuccessResponse(c, "Session detail retrieved successfully", sessionDetail)
 }
 
 func (h *UploadHandler) GetTransactions(c *fiber.Ctx) error {
@@ -452,11 +632,20 @@ func (h *UploadHandler) GetTransactions(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid session ID", err)
 	}
 
+	// Get session first to get session_code
+	session, err := h.uploadRepo.GetSessionByID(id)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusNotFound, "Session not found", err)
+	}
+
+	// Use session_code for transaction lookup - this is the optimized approach
+	sessionCode := session.SessionCode
+
 	// Get pagination parameters
 	params := utils.GetPaginationParams(c)
 	offset := utils.GetOffset(params.Page, params.Limit)
 
-	transactions, total, err := h.uploadRepo.GetTransactionsBySession(id, params.Limit, offset)
+	transactions, total, err := h.uploadRepo.GetTransactionsBySessionCode(sessionCode, params.Limit, offset)
 	if err != nil {
 		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve transactions", err)
 	}
@@ -464,11 +653,92 @@ func (h *UploadHandler) GetTransactions(c *fiber.Ctx) error {
 	pagination := utils.CalculatePagination(params.Page, params.Limit, int64(total))
 
 	responseData := fiber.Map{
+		"session_id":    id,
+		"session_code":  sessionCode,
 		"transactions": transactions,
-		"pagination": pagination,
+		"pagination":   pagination,
 	}
 
 	return utils.PaginatedResponseBuilder(c, "Transactions retrieved successfully", responseData, pagination)
+}
+
+func (h *UploadHandler) GetTransactionsBySessionCode(c *fiber.Ctx) error {
+	sessionCode := c.Params("session_code")
+	if sessionCode == "" {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Session code is required", nil)
+	}
+
+	// Get pagination parameters
+	params := utils.GetPaginationParams(c)
+	offset := utils.GetOffset(params.Page, params.Limit)
+
+	transactions, total, err := h.uploadRepo.GetTransactionsBySessionCode(sessionCode, params.Limit, offset)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve transactions", err)
+	}
+
+	pagination := utils.CalculatePagination(params.Page, params.Limit, int64(total))
+
+	responseData := fiber.Map{
+		"session_code":  sessionCode,
+		"transactions": transactions,
+		"pagination":   pagination,
+	}
+
+	return utils.PaginatedResponseBuilder(c, "Transactions retrieved successfully", responseData, pagination)
+}
+
+func (h *UploadHandler) UpdateTransaction(c *fiber.Ctx) error {
+	transactionID, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid transaction ID", err)
+	}
+
+	var request struct {
+		Koreksi *string `json:"koreksi"`
+		Obyek   *string `json:"obyek"`
+	}
+
+	if err := c.BodyParser(&request); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", err)
+	}
+
+	// Get user ID for authorization
+	userIDInterface := c.Locals("user_id")
+	if userIDInterface == nil {
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "User not authenticated", nil)
+	}
+
+	var userID int
+	switch v := userIDInterface.(type) {
+	case int:
+		userID = v
+	case float64:
+		userID = int(v)
+	case string:
+		if id, err := strconv.Atoi(v); err == nil {
+			userID = id
+		} else {
+			return utils.ErrorResponse(c, fiber.StatusUnauthorized, "Invalid user ID format", nil)
+		}
+	default:
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "Invalid user ID type", nil)
+	}
+
+	// Get role for authorization
+	roleInterface := c.Locals("role")
+	var role string
+	if roleInterface != nil {
+		role = fmt.Sprintf("%v", roleInterface)
+	}
+
+	// Update transaction
+	err = h.uploadRepo.UpdateTransactionKoreksiObyek(transactionID, request.Koreksi, request.Obyek, userID, role)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update transaction", err)
+	}
+
+	return utils.SuccessResponse(c, "Transaction updated successfully", nil)
 }
 
 func (h *UploadHandler) ProcessSession(c *fiber.Ctx) error {
@@ -605,8 +875,11 @@ func (h *UploadHandler) DeleteSession(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusForbidden, "You can only delete your own sessions", nil)
 	}
 
-	// Delete transactions first (due to foreign key constraint)
-	if err := h.uploadRepo.DeleteTransactionsBySession(id); err != nil {
+	// Use session_code to delete transactions - optimized approach
+	sessionCode := session.SessionCode
+
+	// Delete all transactions with this session_code
+	if err := h.uploadRepo.DeleteTransactionsBySessionCode(sessionCode); err != nil {
 		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to delete transactions", err)
 	}
 
@@ -616,6 +889,84 @@ func (h *UploadHandler) DeleteSession(c *fiber.Ctx) error {
 	}
 
 	return utils.SuccessResponse(c, "Session deleted successfully", nil)
+}
+
+func (h *UploadHandler) GetUploadProgress(c *fiber.Ctx) error {
+	sessionCode := c.Params("session_code")
+	if sessionCode == "" {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Session code is required", nil)
+	}
+
+	// Try to get background job first (for large uploads)
+	backgroundJob, err := h.uploadRepo.GetBackgroundJobBySessionCode(sessionCode)
+	if err == nil && backgroundJob != nil {
+		// Return background job progress
+		progress := backgroundJob.GetProgressPercentage()
+		return utils.SuccessResponse(c, "Progress retrieved successfully", fiber.Map{
+			"session_code":    sessionCode,
+			"total_rows":      backgroundJob.TotalRows,
+			"processed_rows":  backgroundJob.ProcessedRows,
+			"progress_percentage": progress,
+			"status":          backgroundJob.Status,
+			"error_message":   backgroundJob.ErrorMessage,
+			"processing_mode": "background",
+			"background_job":  backgroundJob,
+			"created_at":      backgroundJob.CreatedAt,
+			"updated_at":      backgroundJob.UpdatedAt,
+		})
+	}
+
+	// If no background job, try to get regular session info
+	// First try upload_sessions table
+	session, err := h.uploadRepo.GetSessionByCode(sessionCode)
+	if err == nil && session != nil {
+		progress := float64(0)
+		if session.TotalRows > 0 {
+			progress = float64(session.ProcessedRows) / float64(session.TotalRows) * 100
+		}
+
+		return utils.SuccessResponse(c, "Progress retrieved successfully", fiber.Map{
+			"session_code":    sessionCode,
+			"total_rows":      session.TotalRows,
+			"processed_rows":  session.ProcessedRows,
+			"failed_rows":     session.FailedRows,
+			"progress_percentage": progress,
+			"status":          session.Status,
+			"error_message":   session.ErrorMessage,
+			"processing_mode": "immediate",
+			"session":         session,
+			"created_at":      session.CreatedAt,
+			"updated_at":      session.UpdatedAt,
+		})
+	}
+
+	// If no session found, check if it's a batch upload
+	batchSessions, _, err := h.uploadRepo.GetBatchUploads(1, 0, 0) // Get all batches for admin
+	if err == nil {
+		for _, batch := range batchSessions {
+			if batch.SessionCode == sessionCode {
+				progress := float64(0)
+				if batch.TotalRows > 0 {
+					progress = float64(batch.ProcessedRows) / float64(batch.TotalRows) * 100
+				}
+
+				return utils.SuccessResponse(c, "Progress retrieved successfully", fiber.Map{
+					"session_code":    sessionCode,
+					"total_rows":      batch.TotalRows,
+					"processed_rows":  batch.ProcessedRows,
+					"failed_rows":     batch.FailedRows,
+					"progress_percentage": progress,
+					"status":          batch.Status,
+					"processing_mode": "batch",
+					"batch":           batch,
+					"created_at":      batch.CreatedAt,
+					"updated_at":      batch.UpdatedAt,
+				})
+			}
+		}
+	}
+
+	return utils.ErrorResponse(c, fiber.StatusNotFound, "Session not found", nil)
 }
 
 func (h *UploadHandler) DownloadTemplate(c *fiber.Ctx) error {
@@ -638,20 +989,23 @@ func (h *UploadHandler) ExportSession(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid session ID", err)
 	}
 
-	// Get session
+	// Get session to get session_code
 	session, err := h.uploadRepo.GetSessionByID(id)
 	if err != nil {
 		return utils.ErrorResponse(c, fiber.StatusNotFound, "Session not found", err)
 	}
 
-	// Get all transactions (no pagination)
-	transactions, _, err := h.uploadRepo.GetTransactionsBySession(id, 1000000, 0)
+	// Use session_code for transaction lookup - optimized approach
+	sessionCode := session.SessionCode
+
+	// Get all transactions using session_code (no pagination)
+	transactions, _, err := h.uploadRepo.GetTransactionsBySessionCode(sessionCode, 1000000, 0)
 	if err != nil {
 		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve transactions", err)
 	}
 
 	// Generate export file
-	exportFileName := fmt.Sprintf("export_%s_%s.xlsx", session.SessionCode, time.Now().Format("20060102_150405"))
+	exportFileName := fmt.Sprintf("export_%s_%s.xlsx", sessionCode, time.Now().Format("20060102_150405"))
 	exportPath := filepath.Join("./storage/exports", exportFileName)
 
 	if err := h.excelService.ExportTransactions(transactions, exportPath); err != nil {
@@ -659,6 +1013,36 @@ func (h *UploadHandler) ExportSession(c *fiber.Ctx) error {
 	}
 
 	// Send file
+	return c.Download(exportPath, exportFileName)
+}
+
+// ExportSessionByCode exports session transactions using session_code (optimized method)
+func (h *UploadHandler) ExportSessionByCode(c *fiber.Ctx) error {
+	sessionCode := c.Params("session_code")
+	if sessionCode == "" {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Session code is required", nil)
+	}
+
+	// Get all transactions using session_code (no pagination) - optimized approach
+	transactions, _, err := h.uploadRepo.GetTransactionsBySessionCode(sessionCode, 1000000, 0)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve transactions", err)
+	}
+
+	// Generate export file
+	exportFileName := fmt.Sprintf("export_%s_%s.xlsx", sessionCode, time.Now().Format("20060102_150405"))
+	exportPath := filepath.Join("./storage/exports", exportFileName)
+
+	// Ensure the exports directory exists
+	if err := os.MkdirAll("./storage/exports", 0755); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create exports directory", err)
+	}
+
+	// Export transactions to Excel
+	if err := h.excelService.ExportTransactions(transactions, exportPath); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to export data", err)
+	}
+
 	return c.Download(exportPath, exportFileName)
 }
 

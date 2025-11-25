@@ -3,93 +3,414 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Detail - Accounting Web</title>
+    <title>Upload Detail - Pajak GO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Custom animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .slide-in {
+            animation: slideIn 0.4s ease-out;
+        }
+
+        .hover-lift {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Changed field styling */
+        .field-changed {
+            background-color: #fef3c7 !important;
+            border-color: #f59e0b !important;
+        }
+
+        .field-changed:focus {
+            background-color: #fef3c7 !important;
+            border-color: #f59e0b !important;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1) !important;
+        }
+    </style>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        secondary: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        'medium': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                        'large': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                    },
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">
     <!-- Navbar -->
-    <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4">
+    <nav class="glass-effect shadow-medium sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-4">
                 <div class="flex items-center space-x-4">
-                    <a href="/" class="text-2xl font-bold text-blue-600">Accounting Web</a>
+                    <a href="/" class="text-2xl font-bold gradient-text">Pajak GO</a>
                     <span class="text-gray-400">|</span>
-                    <a href="/uploads" class="text-gray-600 hover:text-blue-600">Uploads</a>
-                    <span class="text-gray-400">|</span>
-                    <span class="text-gray-600">Detail</span>
+                    <nav class="hidden md:flex items-center space-x-4">
+                        <a href="/" class="text-gray-600 hover:text-primary-600 transition">Home</a>
+                        <a href="/uploads" class="text-gray-600 hover:text-primary-600 transition">Uploads</a>
+                        <span class="text-primary-600 font-medium">Detail</span>
+                    </nav>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <span id="userDisplay" class="text-gray-700"></span>
-                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
-                        Logout
+                    <span id="userDisplay" class="text-gray-700 hidden sm:block"></span>
+                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition">
+                        <i class="fas fa-sign-out-alt mr-2"></i>
+                        <span class="hidden sm:inline">Logout</span>
+                    </button>
+                    <!-- Mobile menu button -->
+                    <button onclick="toggleMobileMenu()" class="md:hidden text-gray-700">
+                        <i class="fas fa-bars"></i>
                     </button>
                 </div>
+            </div>
+            <!-- Mobile menu -->
+            <div id="mobile-menu" class="hidden md:hidden pb-4">
+                <a href="/" class="block py-2 text-gray-600 hover:text-primary-600 transition">Home</a>
+                <a href="/uploads" class="block py-2 text-gray-600 hover:text-primary-600 transition">Uploads</a>
+                <span class="block py-2 text-primary-600 font-medium">Detail</span>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 py-8">
-        <!-- Session Info -->
-        <div class="bg-white rounded-lg shadow p-6 mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold">Session Details</h2>
-                <div class="space-x-2">
-                    <button onclick="processSession()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
-                        <i class="fas fa-cog mr-2"></i>Process
-                    </button>
-                    <button onclick="exportSession()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-                        <i class="fas fa-download mr-2"></i>Export
+    <div class="min-h-screen py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Header -->
+            <div class="mb-8 fade-in">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <nav class="flex items-center space-x-2 text-sm mb-2">
+                            <a href="/" class="text-gray-500 hover:text-primary-600 transition">Home</a>
+                            <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                            <a href="/uploads" class="text-gray-500 hover:text-primary-600 transition">Uploads</a>
+                            <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                            <span class="text-gray-900 font-medium">Detail</span>
+                        </nav>
+                        <h1 class="text-4xl font-bold gradient-text mb-2">Upload Details</h1>
+                        <p class="text-gray-600 text-lg">View and manage uploaded transaction data</p>
+                    </div>
+                    <button onclick="window.location.href='/uploads'" class="glass-effect px-6 py-3 rounded-xl hover-lift flex items-center space-x-2">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back to Uploads</span>
                     </button>
                 </div>
             </div>
 
-            <div id="sessionInfo" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                    <p class="text-sm text-gray-500">Session Code</p>
-                    <p class="font-semibold" id="sessionCode">Loading...</p>
+            <!-- Session Info Card -->
+            <div class="glass-effect rounded-2xl shadow-large p-8 mb-8 fade-in">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+                    <div>
+                        <h2 class="text-2xl font-semibold text-gray-900 mb-2">Session Information</h2>
+                        <p class="text-gray-600">Upload session details and processing status</p>
+                    </div>
+                    <div class="flex flex-wrap gap-3 mt-4 lg:mt-0">
+                        <button id="processButton" onclick="processSession()" class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 rounded-xl transition-all duration-300 hover-lift flex items-center">
+                            <i class="fas fa-cogs mr-2"></i>
+                            <span id="processButtonText">Process</span>
+                        </button>
+                        <button id="cancelButton" onclick="cancelProcessing()" class="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white px-6 py-3 rounded-xl transition-all duration-300 hover-lift flex items-center hidden">
+                            <i class="fas fa-stop mr-2"></i>
+                            <span>Cancel</span>
+                        </button>
+                        <button id="exportButton" onclick="exportSession()" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-xl transition-all duration-300 hover-lift flex items-center">
+                            <i class="fas fa-download mr-2"></i>
+                            <span id="exportButtonText">Export</span>
+                        </button>
+                    </div>
                 </div>
-                <div>
-                    <p class="text-sm text-gray-500">Filename</p>
-                    <p class="font-semibold" id="filename">Loading...</p>
+
+                <div id="sessionInfo" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-gradient-to-br from-gray-50 to-white p-4 rounded-xl border border-gray-200">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fas fa-hashtag text-white"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 font-medium">Session Code</p>
+                                <p class="font-semibold text-gray-900" id="sessionCode">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-gray-50 to-white p-4 rounded-xl border border-gray-200">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fas fa-file-excel text-white"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 font-medium">Filename</p>
+                                <p class="font-semibold text-gray-900 truncate" id="filename">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-gray-50 to-white p-4 rounded-xl border border-gray-200">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-violet-600 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fas fa-table text-white"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 font-medium">Total Rows</p>
+                                <p class="font-semibold text-gray-900" id="totalRows">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-gray-50 to-white p-4 rounded-xl border border-gray-200">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fas fa-info-circle text-white"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 font-medium">Status</p>
+                                <span id="status" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <p class="text-sm text-gray-500">Total Rows</p>
-                    <p class="font-semibold" id="totalRows">Loading...</p>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-500">Status</p>
-                    <p class="font-semibold" id="status">Loading...</p>
+
+                <!-- Export Progress -->
+                <div id="exportProgress" class="hidden mt-8">
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fas fa-file-export text-white"></i>
+                                </div>
+                                <span class="text-sm font-semibold text-blue-900">Exporting data...</span>
+                            </div>
+                            <span id="exportProgressPercent" class="text-sm font-semibold text-blue-900">0%</span>
+                        </div>
+                        <div class="w-full bg-blue-200 rounded-full h-3">
+                            <div id="exportProgressBar" class="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                        </div>
+                        <p id="exportProgressText" class="text-sm text-blue-700 mt-3 text-center font-medium">Preparing export...</p>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Transactions Table -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-xl font-bold mb-4">Transactions</h3>
+            <!-- Transactions Table -->
+            <div class="glass-effect rounded-2xl shadow-large p-8 fade-in">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
+                    <div>
+                        <h3 class="text-2xl font-semibold text-gray-900 mb-2">Transaction Data</h3>
+                        <p class="text-gray-600">Detailed transaction records from uploaded file</p>
+                    </div>
+                    <div class="flex items-center space-x-4 mt-4 lg:mt-0">
+                        <div class="text-sm text-gray-600 bg-gray-100 px-4 py-2 rounded-lg">
+                            Showing <span id="showingFrom" class="font-semibold">0</span> to <span id="showingTo" class="font-semibold">0</span> of <span id="totalRecords" class="font-semibold">0</span> entries
+                        </div>
+                    </div>
+                </div>
 
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 text-sm">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">No</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">No Akun</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Akun</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Keterangan</th>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Debit</th>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Kredit</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
-                        <tr>
-                            <td colspan="7" class="px-4 py-4 text-center text-gray-500">
-                                <i class="fas fa-spinner fa-spin mr-2"></i>Loading...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <!-- Table Controls -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                    <div class="flex items-center space-x-3">
+                        <label class="text-sm font-medium text-gray-700">Show</label>
+                        <select id="pageSizeSelect" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <label class="text-sm font-medium text-gray-700">entries</label>
+                    </div>
+                </div>
+
+                <!-- Responsive Table Container -->
+                <div class="overflow-x-auto border border-gray-200 rounded-xl">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">No</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Doc Type</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Doc No</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Date</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Account</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Account Name</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Keterangan</th>
+                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">Debet</th>
+                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">Credit</th>
+                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">Net</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Analisa Nature Akun</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Analisa K-O-T</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Analisa Tambahan</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Koreksi</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Obyek</th>
+                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">UM Pajak DB</th>
+                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">PM DB</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Wth 21 Cr</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Wth 23 Cr</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Wth 26 Cr</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Wth 4.2 Cr</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Wth 15 Cr</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">PK Cr</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-900 uppercase tracking-wider">Processed</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="24" class="px-6 py-12 text-center">
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-12 h-12 border-4 border-primary-300 border-t-primary-600 rounded-full animate-spin mb-4"></div>
+                                        <p class="text-gray-500 font-medium">Loading transactions...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Enhanced Pagination -->
+                <div class="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div class="text-sm text-gray-600">
+                        <span class="font-medium">Page <span id="currentPageInfo">1</span> of <span id="totalPagesInfo">1</span></span>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <button id="firstPageBtn" onclick="goToPage(1)" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                            <i class="fas fa-angle-double-left"></i>
+                        </button>
+                        <button id="prevPageBtn" onclick="previousPage()" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                            <i class="fas fa-angle-left"></i>
+                        </button>
+                        <div class="flex items-center space-x-1" id="pageNumbers">
+                            <!-- Page numbers will be inserted here -->
+                        </div>
+                        <button id="nextPageBtn" onclick="nextPage()" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                            <i class="fas fa-angle-right"></i>
+                        </button>
+                        <button id="lastPageBtn" onclick="goToPage('last')" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                            <i class="fas fa-angle-double-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Save Changes Button -->
+                <div class="mt-6 flex justify-end">
+                    <button id="saveAllChangesBtn" onclick="saveAllChanges()" class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 rounded-xl transition-all duration-300 hover-lift flex items-center">
+                        <i class="fas fa-save mr-2"></i>
+                        <span id="saveButtonText">Update All Changes</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -103,7 +424,13 @@
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         document.getElementById('userDisplay').textContent = user.username || 'User';
 
-        const sessionId = window.location.pathname.split('/').pop();
+        const sessionCode = window.location.pathname.split('/').pop();
+
+        // Pagination variables
+        let currentPage = 1;
+        let pageSize = 25;
+        let totalPages = 1;
+        let totalRecords = 0;
 
         function logout() {
             localStorage.removeItem('access_token');
@@ -111,9 +438,17 @@
             window.location.href = '/login';
         }
 
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            if (menu) {
+                menu.classList.toggle('hidden');
+            }
+        }
+
         async function loadSessionDetail() {
             try {
-                const response = await fetch(`/api/v1/uploads/${sessionId}`, {
+                // Use session_code endpoint for optimized performance
+                const response = await fetch(`/api/v1/uploads/session/${sessionCode}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -123,19 +458,72 @@
 
                 if (data.success) {
                     const session = data.data;
-                    document.getElementById('sessionCode').textContent = session.session_code;
-                    document.getElementById('filename').textContent = session.filename;
-                    document.getElementById('totalRows').textContent = session.total_rows;
-                    document.getElementById('status').textContent = session.status;
+                    const processButton = document.getElementById('processButton');
+                    const cancelButton = document.getElementById('cancelButton');
+
+                    document.getElementById('sessionCode').textContent = session.session_code || 'N/A';
+                    document.getElementById('filename').textContent = session.filename || 'N/A';
+                    document.getElementById('totalRows').textContent = session.total_rows ? parseInt(session.total_rows).toLocaleString() : '0';
+
+                    // Update status badge and button visibility
+                    const statusElement = document.getElementById('status');
+                    const status = session.status || 'unknown';
+                    let statusClass = 'bg-gray-100 text-gray-800';
+
+                    switch (status.toLowerCase()) {
+                        case 'completed':
+                            statusClass = 'bg-green-100 text-green-800';
+                            // Show process button, hide cancel button
+                            processButton.classList.remove('hidden');
+                            cancelButton.classList.add('hidden');
+                            break;
+                        case 'processing':
+                            statusClass = 'bg-yellow-100 text-yellow-800';
+                            // Hide process button, show cancel button
+                            processButton.classList.add('hidden');
+                            cancelButton.classList.remove('hidden');
+                            // Start progress checking if processing
+                            setTimeout(() => {
+                                checkProcessingProgress();
+                            }, 2000);
+                            break;
+                        case 'failed':
+                            statusClass = 'bg-red-100 text-red-800';
+                            // Show process button, hide cancel button
+                            processButton.classList.remove('hidden');
+                            cancelButton.classList.add('hidden');
+                            break;
+                        case 'uploaded':
+                            statusClass = 'bg-blue-100 text-blue-800';
+                            // Show process button, hide cancel button
+                            processButton.classList.remove('hidden');
+                            cancelButton.classList.add('hidden');
+                            break;
+                        case 'canceled':
+                            statusClass = 'bg-orange-100 text-orange-800';
+                            // Show process button, hide cancel button
+                            processButton.classList.remove('hidden');
+                            cancelButton.classList.add('hidden');
+                            break;
+                    }
+
+                    statusElement.className = `inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusClass}`;
+                    statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
                 }
             } catch (error) {
                 console.error('Error loading session:', error);
+                document.getElementById('sessionCode').textContent = 'Error';
+                document.getElementById('filename').textContent = 'Error';
+                document.getElementById('totalRows').textContent = '0';
+                document.getElementById('status').textContent = 'Error';
             }
         }
 
         async function loadTransactions() {
             try {
-                const response = await fetch(`/api/v1/uploads/${sessionId}/transactions?limit=100`, {
+                const offset = (currentPage - 1) * pageSize;
+                // Use session_code endpoint for optimized performance
+                const response = await fetch(`/api/v1/uploads/session/${sessionCode}/transactions?limit=${pageSize}&offset=${offset}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -143,51 +531,846 @@
 
                 const data = await response.json();
 
-                if (data.success && data.data.transactions) {
+                if (data.success && data.data) {
                     const tbody = document.getElementById('tableBody');
                     tbody.innerHTML = '';
 
-                    if (data.data.transactions.length === 0) {
-                        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-4 text-center text-gray-500">No transactions found</td></tr>`;
+                    const transactions = data.data.transactions || [];
+                    const pagination = data.data.pagination;
+
+                    // Update pagination info
+                    if (pagination) {
+                        totalRecords = pagination.total;
+                        totalPages = pagination.total_pages || Math.ceil(totalRecords / pageSize);
+                        updatePaginationInfo();
+                    }
+
+                    if (transactions.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="24" class="px-6 py-12 text-center">
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                            <i class="fas fa-inbox text-gray-400 text-2xl"></i>
+                                        </div>
+                                        <p class="text-gray-500 font-medium">No transactions found</p>
+                                        <p class="text-gray-400 text-sm mt-1">Upload data or check filters</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
                         return;
                     }
 
-                    data.data.transactions.forEach((txn, index) => {
+                    transactions.forEach((txn, index) => {
+                        const rowNumber = offset + index + 1;
                         const row = `
-                            <tr>
-                                <td class="px-4 py-3">${index + 1}</td>
-                                <td class="px-4 py-3 whitespace-nowrap">${txn.tanggal || '-'}</td>
-                                <td class="px-4 py-3">${txn.no_akun || '-'}</td>
-                                <td class="px-4 py-3">${txn.nama_akun || '-'}</td>
-                                <td class="px-4 py-3">${txn.keterangan || '-'}</td>
-                                <td class="px-4 py-3 text-right">${formatNumber(txn.debit)}</td>
-                                <td class="px-4 py-3 text-right">${formatNumber(txn.kredit)}</td>
+                            <tr class="hover:bg-gray-50 transition-colors" id="row-${txn.id}">
+                                <td class="px-4 py-3 text-center text-sm font-medium text-gray-900">${rowNumber}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900">${safeValue(txn.document_type)}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900">${safeValue(txn.document_number)}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${formatDate(txn.posting_date)}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900 font-medium">${safeValue(txn.account)}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900 max-w-xs truncate" title="${safeValue(txn.account_name)}">${safeValue(txn.account_name)}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900 max-w-xs truncate" title="${safeValue(txn.keterangan)}">${safeValue(txn.keterangan).substring(0, 100)}${safeValue(txn.keterangan).length > 100 ? '...' : ''}</td>
+                                <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">${formatNumber(txn.debet)}</td>
+                                <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">${formatNumber(txn.credit)}</td>
+                                <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">${formatNumber(txn.net)}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900">${safeValue(txn.nature_akun)}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900">${safeValue(txn.analisa_kot)}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900 max-w-xs truncate" title="${safeValue(txn.analisa_tambahan)}">${safeValue(txn.analisa_tambahan).substring(0, 30)}${safeValue(txn.analisa_tambahan).length > 30 ? '...' : ''}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900">
+                                    <input type="text"
+                                           class="koreksi-field w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                           value="${safeValue(txn.koreksi)}"
+                                           data-transaction-id="${txn.id}"
+                                           data-original-value="${safeValue(txn.koreksi)}"
+                                           placeholder="Masukkan koreksi...">
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-900">
+                                    <input type="text"
+                                           class="obyek-field w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                           value="${safeValue(txn.obyek)}"
+                                           data-transaction-id="${txn.id}"
+                                           data-original-value="${safeValue(txn.obyek)}"
+                                           placeholder="Masukkan obyek...">
+                                </td>
+                                <td class="px-4 py-3 text-sm text-right text-gray-900">${formatNumber(txn.um_pajak_db)}</td>
+                                <td class="px-4 py-3 text-sm text-right text-gray-900">${formatNumber(txn.pm_db)}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900">${safeValue(txn.withholding_pph_21)}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900">${safeValue(txn.withholding_pph_23)}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900">${safeValue(txn.withholding_pph_26)}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900">${safeValue(txn.withholding_pph_42)}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900">${safeValue(txn.withholding_pph_15)}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900">${safeValue(txn.pk_cr_account)}</td>
+                                <td class="px-4 py-3 text-center">
+                                    ${txn.is_processed ?
+                                        '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-check mr-1"></i>Yes</span>' :
+                                        '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"><i class="fas fa-clock mr-1"></i>No</span>'
+                                    }
+                                </td>
                             </tr>
                         `;
                         tbody.innerHTML += row;
                     });
                 } else {
-                    document.getElementById('tableBody').innerHTML =
-                        `<tr><td colspan="7" class="px-4 py-4 text-center text-gray-500">Failed to load transactions</td></tr>`;
+                    document.getElementById('tableBody').innerHTML = `
+                        <tr>
+                            <td colspan="24" class="px-6 py-12 text-center">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                                        <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+                                    </div>
+                                    <p class="text-red-500 font-medium">Failed to load transactions</p>
+                                    <button onclick="loadTransactions()" class="text-red-600 hover:text-red-700 text-sm mt-2">Try again</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
                 }
             } catch (error) {
-                document.getElementById('tableBody').innerHTML =
-                    `<tr><td colspan="7" class="px-4 py-4 text-center text-red-500">Error: ${error.message}</td></tr>`;
+                document.getElementById('tableBody').innerHTML = `
+                    <tr>
+                        <td colspan="24" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center">
+                                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                                    <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+                                </div>
+                                <p class="text-red-500 font-medium">Error loading data</p>
+                                <p class="text-gray-500 text-sm mt-1">${error.message}</p>
+                                <button onclick="loadTransactions()" class="text-red-600 hover:text-red-700 text-sm mt-2">Try again</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
             }
         }
 
+        function safeValue(value, defaultValue = '-') {
+            if (value === null || value === undefined || value === 'null' || value === 'undefined') {
+                return defaultValue;
+            }
+            return String(value).trim() || defaultValue;
+        }
+
         function formatNumber(num) {
-            if (!num) return '0';
-            return parseFloat(num).toLocaleString('id-ID');
+            if (num === null || num === undefined || num === 'null' || num === 'undefined') {
+                return '-';
+            }
+            if (num === '0' || num === 0) return '0';
+            return parseFloat(num).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
-        function processSession() {
-            alert('Process session - Coming soon! (Requires Redis/Asynq)');
+        function formatDate(dateStr) {
+            if (!dateStr || dateStr === null || dateStr === undefined || dateStr === 'null' || dateStr === 'undefined') return '-';
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return safeValue(dateStr);
+            return date.toLocaleDateString('id-ID', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
         }
 
-        function exportSession() {
-            window.location.href = `/api/v1/uploads/${sessionId}/export`;
+        async function processSession() {
+            const processButton = document.getElementById('processButton');
+            const cancelButton = document.getElementById('cancelButton');
+            const processButtonText = document.getElementById('processButtonText');
+
+            // Disable process button and show loading
+            processButton.disabled = true;
+            processButton.classList.add('opacity-75');
+            processButtonText.textContent = 'Processing...';
+
+            try {
+                // Get session data to obtain session_id for process/cancel operations
+                const sessionResponse = await fetch(`/api/v1/uploads/session/${sessionCode}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const sessionData = await sessionResponse.json();
+                let sessionIdForProcess = sessionCode; // fallback
+
+                if (sessionData.success && sessionData.data && sessionData.data.id) {
+                    sessionIdForProcess = sessionData.data.id;
+                }
+
+                const response = await fetch(`/api/v1/uploads/${sessionIdForProcess}/process`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Show cancel button, hide process button
+                    processButton.classList.add('hidden');
+                    cancelButton.classList.remove('hidden');
+
+                    // Start checking progress
+                    setTimeout(() => {
+                        checkProcessingProgress();
+                    }, 2000);
+
+                    // Show success alert
+                    alert('Processing started successfully! The data will be processed in the background. Click "Cancel" to stop processing.');
+                } else {
+                    throw new Error(data.message || 'Failed to start processing');
+                }
+            } catch (error) {
+                console.error('Process error:', error);
+
+                // Show error and reset button
+                processButtonText.textContent = 'Process';
+                processButton.disabled = false;
+                processButton.classList.remove('opacity-75');
+
+                // Show error message
+                alert(`Failed to start processing: ${error.message}`);
+            }
         }
+
+        async function cancelProcessing() {
+            const cancelButton = document.getElementById('cancelButton');
+            const processButton = document.getElementById('processButton');
+            const processButtonText = document.getElementById('processButtonText');
+
+            // Confirm before canceling
+            if (!confirm('Are you sure you want to cancel the processing? This will stop all background jobs for this session.')) {
+                return;
+            }
+
+            // Disable cancel button and show loading
+            cancelButton.disabled = true;
+            cancelButton.classList.add('opacity-75');
+            const originalHTML = cancelButton.innerHTML;
+            cancelButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Canceling...';
+
+            try {
+                // Get session data to obtain session_id for process/cancel operations
+                const sessionResponse = await fetch(`/api/v1/uploads/session/${sessionCode}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const sessionData = await sessionResponse.json();
+                let sessionIdForCancel = sessionCode; // fallback
+
+                if (sessionData.success && sessionData.data && sessionData.data.id) {
+                    sessionIdForCancel = sessionData.data.id;
+                }
+
+                const response = await fetch(`/api/v1/uploads/${sessionIdForCancel}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Reset buttons to original state
+                    cancelButton.classList.add('hidden');
+                    cancelButton.disabled = false;
+                    cancelButton.classList.remove('opacity-75');
+                    cancelButton.innerHTML = originalHTML;
+
+                    processButton.classList.remove('hidden');
+                    processButton.disabled = false;
+                    processButton.classList.remove('opacity-75');
+                    processButtonText.textContent = 'Process';
+
+                    // Show success message
+                    alert('Processing canceled successfully! The background jobs have been stopped.');
+
+                    // Reload session data to update status
+                    loadSessionDetail();
+                } else {
+                    throw new Error(data.message || 'Failed to cancel processing');
+                }
+            } catch (error) {
+                console.error('Cancel error:', error);
+
+                // Reset cancel button
+                cancelButton.innerHTML = originalHTML;
+                cancelButton.disabled = false;
+                cancelButton.classList.remove('opacity-75');
+
+                // Show error message
+                alert(`Failed to cancel processing: ${error.message}`);
+            }
+        }
+
+        async function checkProcessingProgress() {
+            try {
+                // Use session_code endpoint for optimized performance
+                const response = await fetch(`/api/v1/uploads/session/${sessionCode}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    const session = data.data;
+                    const processButton = document.getElementById('processButton');
+                    const cancelButton = document.getElementById('cancelButton');
+                    const processButtonText = document.getElementById('processButtonText');
+
+                    // Update status badge
+                    const statusElement = document.getElementById('status');
+                    const status = session.status || 'unknown';
+                    let statusClass = 'bg-gray-100 text-gray-800';
+                    let statusText = status.charAt(0).toUpperCase() + status.slice(1);
+
+                    switch (status.toLowerCase()) {
+                        case 'completed':
+                            statusClass = 'bg-green-100 text-green-800';
+                            // Show process button again, hide cancel button
+                            processButton.classList.remove('hidden');
+                            cancelButton.classList.add('hidden');
+                            processButtonText.textContent = 'Process';
+                            processButton.disabled = false;
+                            processButton.classList.remove('opacity-75');
+                            // Reload transactions if processing completed
+                            loadTransactions();
+                            break;
+                        case 'processing':
+                            statusClass = 'bg-yellow-100 text-yellow-800';
+                            // Ensure cancel button is visible and process button is hidden
+                            processButton.classList.add('hidden');
+                            cancelButton.classList.remove('hidden');
+                            // Continue checking progress
+                            setTimeout(() => {
+                                checkProcessingProgress();
+                            }, 5000);
+                            break;
+                        case 'failed':
+                            statusClass = 'bg-red-100 text-red-800';
+                            // Show process button again, hide cancel button
+                            processButton.classList.remove('hidden');
+                            cancelButton.classList.add('hidden');
+                            processButtonText.textContent = 'Process';
+                            processButton.disabled = false;
+                            processButton.classList.remove('opacity-75');
+                            break;
+                        case 'uploaded':
+                            statusClass = 'bg-blue-100 text-blue-800';
+                            // Show process button, hide cancel button
+                            processButton.classList.remove('hidden');
+                            cancelButton.classList.add('hidden');
+                            processButtonText.textContent = 'Process';
+                            processButton.disabled = false;
+                            processButton.classList.remove('opacity-75');
+                            break;
+                        case 'canceled':
+                            statusClass = 'bg-orange-100 text-orange-800';
+                            // Show process button again, hide cancel button
+                            processButton.classList.remove('hidden');
+                            cancelButton.classList.add('hidden');
+                            processButtonText.textContent = 'Process';
+                            processButton.disabled = false;
+                            processButton.classList.remove('opacity-75');
+                            break;
+                    }
+
+                    statusElement.className = `inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusClass}`;
+                    statusElement.textContent = statusText;
+
+                    // Update processed rows count
+                    if (session.processed_rows !== undefined) {
+                        console.log(`Processed: ${session.processed_rows}/${session.total_rows}`);
+                    }
+                }
+            } catch (error) {
+                console.error('Progress check error:', error);
+            }
+        }
+
+        async function exportSession() {
+            const exportButton = document.getElementById('exportButton');
+            const exportButtonText = document.getElementById('exportButtonText');
+            const exportProgress = document.getElementById('exportProgress');
+            const exportProgressBar = document.getElementById('exportProgressBar');
+            const exportProgressPercent = document.getElementById('exportProgressPercent');
+            const exportProgressText = document.getElementById('exportProgressText');
+
+            // Disable button and show progress
+            exportButton.disabled = true;
+            exportButton.classList.add('opacity-75');
+            exportButtonText.textContent = 'Exporting...';
+            exportProgress.classList.remove('hidden');
+
+            // Reset progress
+            updateExportProgress(0, 'Preparing export...');
+
+            try {
+                // Use XMLHttpRequest for progress tracking
+                const xhr = new XMLHttpRequest();
+
+                // Progress tracking
+                xhr.addEventListener('progress', function(e) {
+                    if (e.lengthComputable && e.total > 0) {
+                        const percentComplete = Math.round((e.loaded / e.total) * 100);
+                        updateExportProgress(percentComplete, `Downloading data... ${percentComplete}%`);
+                    } else {
+                        // If we can't compute progress, show a loading indicator
+                        updateExportProgress(50, 'Processing data on server...');
+                    }
+                });
+
+                // Handle response
+                xhr.addEventListener('load', function() {
+                    if (xhr.status === 200) {
+                        updateExportProgress(90, 'Finalizing export...');
+
+                        // Get the filename from the response headers or create a default one
+                        const contentDisposition = xhr.getResponseHeader('content-disposition');
+                        let filename = `export_${sessionCode}_${new Date().toISOString().slice(0,10)}.xlsx`;
+
+                        if (contentDisposition) {
+                            const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                            if (filenameMatch && filenameMatch[1]) {
+                                filename = filenameMatch[1].replace(/['"]/g, '');
+                            }
+                        }
+
+                        // Create blob and download
+                        const blob = new Blob([xhr.response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+
+                        updateExportProgress(100, 'Export completed successfully!');
+                        setTimeout(() => {
+                            resetExportButton();
+                            exportProgress.classList.add('hidden');
+                        }, 2000);
+                    } else {
+                        let errorMessage = 'Export failed';
+                        try {
+                            const errorData = JSON.parse(xhr.responseText);
+                            errorMessage = errorData.message || 'Unknown error';
+                        } catch (e) {
+                            errorMessage = `Export failed with status: ${xhr.status}`;
+                        }
+                        updateExportProgress(0, `Error: ${errorMessage}`);
+                        setTimeout(() => {
+                            resetExportButton();
+                            exportProgress.classList.add('hidden');
+                        }, 3000);
+                    }
+                });
+
+                // Handle errors
+                xhr.addEventListener('error', function() {
+                    updateExportProgress(0, 'Network error occurred during export');
+                    setTimeout(() => {
+                        resetExportButton();
+                        exportProgress.classList.add('hidden');
+                    }, 3000);
+                });
+
+                xhr.addEventListener('timeout', function() {
+                    updateExportProgress(0, 'Export timeout. Please try again.');
+                    setTimeout(() => {
+                        resetExportButton();
+                        exportProgress.classList.add('hidden');
+                    }, 3000);
+                });
+
+                // Set timeout to 10 minutes for large exports
+                xhr.timeout = 600000; // 10 minutes
+
+                // Use session_code directly for export operations (optimized route)
+                xhr.open('GET', `/api/v1/uploads/session/${sessionCode}/export`);
+                xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                xhr.responseType = 'blob';
+                xhr.send();
+
+            } catch (error) {
+                console.error('Export error:', error);
+                updateExportProgress(0, `Error: ${error.message}`);
+                setTimeout(() => {
+                    resetExportButton();
+                    exportProgress.classList.add('hidden');
+                }, 3000);
+            }
+        }
+
+        function updateExportProgress(percent, text) {
+            const exportProgressBar = document.getElementById('exportProgressBar');
+            const exportProgressPercent = document.getElementById('exportProgressPercent');
+            const exportProgressText = document.getElementById('exportProgressText');
+
+            exportProgressBar.style.width = percent + '%';
+            exportProgressPercent.textContent = percent + '%';
+            exportProgressText.textContent = text;
+        }
+
+        function resetExportButton() {
+            const exportButton = document.getElementById('exportButton');
+            const exportButtonText = document.getElementById('exportButtonText');
+
+            exportButton.disabled = false;
+            exportButton.classList.remove('opacity-75');
+            exportButtonText.textContent = 'Export';
+        }
+
+        // Pagination functions
+        function updatePaginationInfo() {
+            const showingFrom = totalRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+            const showingTo = Math.min(currentPage * pageSize, totalRecords);
+
+            document.getElementById('showingFrom').textContent = showingFrom;
+            document.getElementById('showingTo').textContent = showingTo;
+            document.getElementById('totalRecords').textContent = totalRecords;
+            document.getElementById('currentPageInfo').textContent = currentPage;
+            document.getElementById('totalPagesInfo').textContent = totalPages;
+
+            // Update button states
+            document.getElementById('firstPageBtn').disabled = currentPage === 1;
+            document.getElementById('prevPageBtn').disabled = currentPage === 1;
+            document.getElementById('nextPageBtn').disabled = currentPage === totalPages || totalPages === 0;
+            document.getElementById('lastPageBtn').disabled = currentPage === totalPages || totalPages === 0;
+
+            // Update page numbers
+            updatePageNumbers();
+        }
+
+        function updatePageNumbers() {
+            const pageNumbersContainer = document.getElementById('pageNumbers');
+            pageNumbersContainer.innerHTML = '';
+
+            if (totalPages <= 1) return;
+
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, currentPage + 2);
+
+            if (startPage > 1) {
+                addPageNumber(1);
+                if (startPage > 2) {
+                    pageNumbersContainer.innerHTML += '<span class="px-3 py-2 text-gray-400">...</span>';
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                addPageNumber(i);
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    pageNumbersContainer.innerHTML += '<span class="px-3 py-2 text-gray-400">...</span>';
+                }
+                addPageNumber(totalPages);
+            }
+        }
+
+        function addPageNumber(pageNum) {
+            const pageNumbersContainer = document.getElementById('pageNumbers');
+            const button = document.createElement('button');
+            button.textContent = pageNum;
+            button.className = pageNum === currentPage
+                ? 'px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-600 to-secondary-600 rounded-lg'
+                : 'px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors';
+            button.onclick = () => goToPage(pageNum);
+            pageNumbersContainer.appendChild(button);
+        }
+
+        function goToPage(page) {
+            if (page === 'last') {
+                currentPage = totalPages;
+            } else {
+                currentPage = page;
+            }
+            loadTransactions();
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadTransactions();
+            }
+        }
+
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                loadTransactions();
+            }
+        }
+
+        // Save all changes function
+        async function saveAllChanges() {
+            const saveButton = document.getElementById('saveAllChangesBtn');
+            const saveButtonText = document.getElementById('saveButtonText');
+
+            // Collect all changed transactions
+            const koreksiFields = document.querySelectorAll('.koreksi-field');
+            const obyekFields = document.querySelectorAll('.obyek-field');
+
+            const changes = [];
+
+            // Process koreksi fields
+            koreksiFields.forEach(field => {
+                const transactionId = field.dataset.transactionId;
+                const originalValue = field.dataset.originalValue;
+                const currentValue = field.value.trim();
+
+                if (originalValue !== currentValue) {
+                    changes.push({
+                        transactionId: parseInt(transactionId),
+                        koreksi: currentValue || null,
+                        obyek: null
+                    });
+                }
+            });
+
+            // Process obyek fields
+            obyekFields.forEach(field => {
+                const transactionId = field.dataset.transactionId;
+                const originalValue = field.dataset.originalValue;
+                const currentValue = field.value.trim();
+
+                // Find existing change for this transaction or create new
+                const existingChange = changes.find(c => c.transactionId === parseInt(transactionId));
+                if (existingChange) {
+                    existingChange.obyek = currentValue || null;
+                } else if (originalValue !== currentValue) {
+                    changes.push({
+                        transactionId: parseInt(transactionId),
+                        koreksi: null,
+                        obyek: currentValue || null
+                    });
+                }
+            });
+
+            if (changes.length === 0) {
+                showNotification('No changes to save', 'info');
+                return;
+            }
+
+            // Disable button and show loading
+            saveButton.disabled = true;
+            saveButton.classList.add('opacity-75');
+            saveButtonText.textContent = `Saving ${changes.length} transaction${changes.length > 1 ? 's' : ''}...`;
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            // Save each transaction
+            for (const change of changes) {
+                try {
+                    const response = await fetch(`/api/v1/transactions/${change.transactionId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            koreksi: change.koreksi,
+                            obyek: change.obyek
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        successCount++;
+                        // Update original values
+                        const koreksiField = document.querySelector(`.koreksi-field[data-transaction-id="${change.transactionId}"]`);
+                        const obyekField = document.querySelector(`.obyek-field[data-transaction-id="${change.transactionId}"]`);
+
+                        if (koreksiField) {
+                            koreksiField.dataset.originalValue = change.koreksi || '';
+                        }
+                        if (obyekField) {
+                            obyekField.dataset.originalValue = change.obyek || '';
+                        }
+                    } else {
+                        errorCount++;
+                        console.error(`Failed to update transaction ${change.transactionId}:`, data.message);
+                    }
+                } catch (error) {
+                    errorCount++;
+                    console.error(`Error updating transaction ${change.transactionId}:`, error);
+                }
+            }
+
+            // Reset button
+            saveButton.disabled = false;
+            saveButton.classList.remove('opacity-75');
+            saveButtonText.textContent = 'Update All Changes';
+
+            // Show result message and update UI
+            if (errorCount === 0) {
+                hasUnsavedChanges = false;
+                // Remove all field-changed classes
+                document.querySelectorAll('.field-changed').forEach(field => {
+                    field.classList.remove('field-changed');
+                });
+                updateSaveButton();
+                showNotification(`Successfully updated ${successCount} transaction${successCount > 1 ? 's' : ''}!`, 'success');
+            } else {
+                showNotification(`Updated ${successCount} transaction${successCount > 1 ? 's' : ''}, but ${errorCount} failed to save.`, 'warning');
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full`;
+
+            // Set color based on type
+            let bgColorClass = 'bg-blue-500';
+            let textColorClass = 'text-white';
+            let iconClass = 'fas fa-info-circle';
+
+            switch (type) {
+                case 'success':
+                    bgColorClass = 'bg-green-500';
+                    iconClass = 'fas fa-check-circle';
+                    break;
+                case 'error':
+                    bgColorClass = 'bg-red-500';
+                    iconClass = 'fas fa-exclamation-circle';
+                    break;
+                case 'warning':
+                    bgColorClass = 'bg-yellow-500';
+                    iconClass = 'fas fa-exclamation-triangle';
+                    break;
+            }
+
+            notification.className += ` ${bgColorClass} ${textColorClass}`;
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="${iconClass} mr-3"></i>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 hover:opacity-75">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+
+            // Add to page
+            document.body.appendChild(notification);
+
+            // Slide in
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full');
+                notification.classList.add('translate-x-0');
+            }, 100);
+
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.classList.add('translate-x-full');
+                    setTimeout(() => {
+                        if (notification.parentElement) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }
+            }, 5000);
+        }
+
+        // Event listeners
+        document.getElementById('pageSizeSelect').addEventListener('change', (e) => {
+            pageSize = parseInt(e.target.value);
+            currentPage = 1;
+            loadTransactions();
+        });
+
+        // Add fade-in animation to page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const elements = document.querySelectorAll('.fade-in');
+            elements.forEach((el, index) => {
+                setTimeout(() => {
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(20px)';
+                    el.style.animation = 'fadeIn 0.6s ease-out forwards';
+                }, index * 100);
+            });
+        });
+
+        // Track unsaved changes
+        let hasUnsavedChanges = false;
+
+        // Add event listeners for field changes
+        function addFieldChangeListeners() {
+            document.querySelectorAll('.koreksi-field, .obyek-field').forEach(field => {
+                field.addEventListener('input', function() {
+                    const originalValue = this.dataset.originalValue;
+                    const currentValue = this.value.trim();
+
+                    if (originalValue !== currentValue) {
+                        this.classList.add('field-changed');
+                        hasUnsavedChanges = true;
+                        updateSaveButton();
+                    } else {
+                        this.classList.remove('field-changed');
+                        checkForUnsavedChanges();
+                    }
+                });
+            });
+        }
+
+        // Check if there are any unsaved changes
+        function checkForUnsavedChanges() {
+            hasUnsavedChanges = false;
+            document.querySelectorAll('.koreksi-field, .obyek-field').forEach(field => {
+                const originalValue = field.dataset.originalValue;
+                const currentValue = field.value.trim();
+
+                if (originalValue !== currentValue) {
+                    hasUnsavedChanges = true;
+                }
+            });
+            updateSaveButton();
+        }
+
+        // Update save button text based on changes
+        function updateSaveButton() {
+            const saveButtonText = document.getElementById('saveButtonText');
+            const changedFields = document.querySelectorAll('.field-changed').length;
+
+            if (changedFields > 0) {
+                saveButtonText.textContent = `Update ${changedFields} Change${changedFields > 1 ? 's' : ''}`;
+            } else {
+                saveButtonText.textContent = 'Update All Changes';
+            }
+        }
+
+        // Warning before leaving page with unsaved changes
+        window.addEventListener('beforeunload', function(e) {
+            if (hasUnsavedChanges) {
+                const message = 'You have unsaved changes. Are you sure you want to leave?';
+                e.returnValue = message;
+                return message;
+            }
+        });
+
+        // Modify loadTransactions to add event listeners after loading
+        const originalLoadTransactions = loadTransactions;
+        loadTransactions = function() {
+            originalLoadTransactions.apply(this, arguments).then(() => {
+                addFieldChangeListeners();
+            });
+        };
 
         // Load data
         loadSessionDetail();
