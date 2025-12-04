@@ -69,6 +69,7 @@ func main() {
 
 	// Static files
 	app.Static("/static", "./public")
+	app.Static("/shared", "./public/shared")
 
 	// Setup routes
 	router.Setup(app, db, redisClient, cfg)

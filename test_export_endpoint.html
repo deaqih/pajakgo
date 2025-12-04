@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Endpoint Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .result { margin-top: 10px; padding: 10px; background: #f5f5f5; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>Export Endpoint Test</h1>
+
+    <div class="test-section">
+        <h3>Test Session Export by Code</h3>
+        <input type="text" id="sessionCode" placeholder="Enter session code (e.g., BATCH-74a0c17b)" value="BATCH-74a0c17b">
+        <button onclick="testSessionExport()">Test Session Export</button>
+        <div id="sessionResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test Sessions List Export</h3>
+        <button onclick="testSessionsListExport()">Test Sessions List Export</button>
+        <div id="listResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Manual URL Test</h3>
+        <input type="text" id="manualUrl" placeholder="Enter full URL to test" style="width: 400px;">
+        <button onclick="testManualUrl()">Test Manual URL</button>
+        <div id="manualResult" class="result"></div>
+    </div>
+
+    <script>
+        // Test token - replace with actual token
+        const token = localStorage.getItem('access_token') || 'your-test-token-here';
+
+        async function testSessionExport() {
+            const sessionCode = document.getElementById('sessionCode').value;
+            const resultDiv = document.getElementById('sessionResult');
+
+            if (!sessionCode) {
+                resultDiv.innerHTML = '<div class="error">Please enter a session code</div>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<div>Testing export for session: ' + sessionCode + '</div>';
+
+            const url = `/api/v1/uploads/session/${sessionCode}/export`;
+            console.log('Testing URL:', url);
+
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+
+                const contentType = response.headers.get('content-type');
+
+                if (response.ok) {
+                    if (contentType && contentType.includes('application/json')) {
+                        const data = await response.json();
+                        resultDiv.innerHTML = `<div class="error">Status: ${response.status}<br>Unexpected JSON response:<br><pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                    } else if (contentType && contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+                        const blob = await response.blob();
+                        const size = (blob.size / 1024 / 1024).toFixed(2);
+                        resultDiv.innerHTML = `<div class="success">✅ Export successful!<br>File size: ${size} MB<br>Content-Type: ${contentType}</div>`;
+
+                        // Download the file
+                        const downloadUrl = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = downloadUrl;
+                        a.download = `export_${sessionCode}_${Date.now()}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(downloadUrl);
+                    } else {
+                        resultDiv.innerHTML = `<div class="success">✅ Response OK (Status: ${response.status})<br>Content-Type: ${contentType}</div>`;
+                    }
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `<div class="error">❌ Error: ${response.status} ${response.statusText}<br><pre>${errorText}</pre></div>`;
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                resultDiv.innerHTML = `<div class="error">❌ Fetch Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testSessionsListExport() {
+            const resultDiv = document.getElementById('listResult');
+            resultDiv.innerHTML = '<div>Testing sessions list export...</div>';
+
+            const url = '/api/v1/uploads/export';
+            console.log('Testing URL:', url);
+
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('Response status:', response.status);
+
+                if (response.ok) {
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+                        const blob = await response.blob();
+                        const size = (blob.size / 1024 / 1024).toFixed(2);
+                        resultDiv.innerHTML = `<div class="success">✅ Sessions list export successful!<br>File size: ${size} MB</div>`;
+
+                        // Download the file
+                        const downloadUrl = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = downloadUrl;
+                        a.download = `upload_sessions_${Date.now()}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(downloadUrl);
+                    } else {
+                        resultDiv.innerHTML = `<div class="error">❌ Unexpected content type: ${contentType}</div>`;
+                    }
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `<div class="error">❌ Error: ${response.status} ${response.statusText}<br><pre>${errorText}</pre></div>`;
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                resultDiv.innerHTML = `<div class="error">❌ Fetch Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testManualUrl() {
+            const url = document.getElementById('manualUrl').value;
+            const resultDiv = document.getElementById('manualResult');
+
+            if (!url) {
+                resultDiv.innerHTML = '<div class="error">Please enter a URL</div>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<div>Testing manual URL: ' + url + '</div>';
+
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const text = await response.text();
+                resultDiv.innerHTML = `<div>Status: ${response.status}<br><pre>${text.substring(0, 1000)}</pre></div>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-run test when page loads
+        window.onload = function() {
+            console.log('Page loaded. Ready to test export endpoints.');
+        };
+    </script>
+</body>
+</html>

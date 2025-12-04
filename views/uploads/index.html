@@ -180,23 +180,67 @@
             </div>
         </div>
 
+        <!-- Excel Filters Container -->
+        <div id="excelFiltersContainer"></div>
+
         <!-- Table Container -->
         <div class="bg-white rounded-2xl shadow-soft overflow-hidden fade-in">
             <div class="p-6 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900">Recent Uploads</h3>
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900">Upload Sessions</h3>
+
+                    <!-- Quick Actions -->
+                    <div class="mt-4 sm:mt-0 flex items-center space-x-3">
+                        <button onclick="exportToExcel()" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <i class="fas fa-file-excel mr-2"></i>
+                            Export
+                        </button>
+                        <button onclick="refreshData()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <i class="fas fa-sync-alt mr-2"></i>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <!-- Desktop Table -->
+            <!-- Enhanced Table Header with Sort -->
             <div class="hidden lg:block overflow-x-auto">
                 <table class="min-w-full">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Session Code</th>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Filename</th>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Total Rows</th>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Created At</th>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                            <th class="px-6 py-3 text-left">
+                                <button onclick="sortTable('session_code')" class="group inline-flex items-center text-xs font-semibold text-gray-600 uppercase tracking-wider hover:text-gray-900">
+                                    Session Code
+                                    <i class="ml-1 fas fa-sort text-gray-400 group-hover:text-gray-600"></i>
+                                </button>
+                            </th>
+                            <th class="px-6 py-3 text-left">
+                                <button onclick="sortTable('filename')" class="group inline-flex items-center text-xs font-semibold text-gray-600 uppercase tracking-wider hover:text-gray-900">
+                                    Filename
+                                    <i class="ml-1 fas fa-sort text-gray-400 group-hover:text-gray-600"></i>
+                                </button>
+                            </th>
+                            <th class="px-6 py-3 text-left">
+                                <button onclick="sortTable('total_rows')" class="group inline-flex items-center text-xs font-semibold text-gray-600 uppercase tracking-wider hover:text-gray-900">
+                                    Total Rows
+                                    <i class="ml-1 fas fa-sort text-gray-400 group-hover:text-gray-600"></i>
+                                </button>
+                            </th>
+                            <th class="px-6 py-3 text-left">
+                                <button onclick="sortTable('status')" class="group inline-flex items-center text-xs font-semibold text-gray-600 uppercase tracking-wider hover:text-gray-900">
+                                    Status
+                                    <i class="ml-1 fas fa-sort text-gray-400 group-hover:text-gray-600"></i>
+                                </button>
+                            </th>
+                            <th class="px-6 py-3 text-left">
+                                <button onclick="sortTable('created_at')" class="group inline-flex items-center text-xs font-semibold text-gray-600 uppercase tracking-wider hover:text-gray-900">
+                                    Created At
+                                    <i class="ml-1 fas fa-sort text-gray-400 group-hover:text-gray-600"></i>
+                                </button>
+                            </th>
+                            <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                Actions
+                            </th>
                         </tr>
                     </thead>
                     <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
@@ -223,6 +267,11 @@
                     <p class="text-gray-500">Loading upload sessions...</p>
                 </div>
             </div>
+
+            <!-- Pagination Info -->
+            <div id="paginationInfo" class="px-6 py-3 border-t border-gray-200 bg-gray-50 hidden">
+                <div class="pagination-container"></div>
+            </div>
         </div>
 
         <!-- Empty State -->
@@ -241,6 +290,10 @@
         </div>
     </div>
 
+    <!-- Include scripts -->
+    <script src="/shared/excel-filters.js"></script>
+    <script src="/shared/cursor-pagination.js"></script>
+
     <script>
         const token = localStorage.getItem('access_token');
         if (!token) {
@@ -250,6 +303,205 @@
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         document.getElementById('userDisplay').textContent = user.username || 'User';
         document.getElementById('userDisplayMobile').textContent = user.username || 'User';
+
+        // Initialize managers
+        let cursorPaginationManager;
+        let excelFilterManager;
+        let currentSortColumn = 'created_at';
+        let currentSortDirection = 'desc';
+
+        function initializeManagers() {
+            // Initialize Excel Filters
+            excelFilterManager = new ExcelFilterManager({
+                container: document.getElementById('excelFiltersContainer'),
+                maxEntries: 10000,
+                columns: [
+                    {
+                        key: 'session_code',
+                        label: 'Session Code',
+                        type: 'text'
+                    },
+                    {
+                        key: 'filename',
+                        label: 'Filename',
+                        type: 'text'
+                    },
+                    {
+                        key: 'status',
+                        label: 'Status',
+                        type: 'select',
+                        options: [
+                            { value: 'uploaded', label: 'Uploaded' },
+                            { value: 'processing', label: 'Processing' },
+                            { value: 'completed', label: 'Completed' },
+                            { value: 'failed', label: 'Failed' }
+                        ]
+                    },
+                    {
+                        key: 'total_rows',
+                        label: 'Total Rows',
+                        type: 'number'
+                    },
+                    {
+                        key: 'processed_rows',
+                        label: 'Processed Rows',
+                        type: 'number'
+                    },
+                    {
+                        key: 'failed_rows',
+                        label: 'Failed Rows',
+                        type: 'number'
+                    }
+                ],
+                onFilterChange: () => {
+                    // Show pagination info when filters are applied
+                    const paginationInfo = document.getElementById('paginationInfo');
+                    if (paginationInfo) {
+                        paginationInfo.classList.remove('hidden');
+                    }
+                    // Only call loadCurrentPageData - let it handle everything
+                    loadCurrentPageData();
+                }
+            });
+            excelFilterManager.init();
+
+            // Initialize Cursor Pagination with silent mode (no automatic calls)
+            cursorPaginationManager = new CursorPaginationManager({
+                defaultLimit: 25,
+                defaultMode: 'cursor',
+                onPageChange: (params) => {
+                    // Only call loadCurrentPageData - no separate loadSessions call
+                    loadCurrentPageData();
+                }
+            });
+            cursorPaginationManager.init('paginationInfo');
+        }
+
+        function loadCurrentPageData() {
+            // Combine filters and pagination parameters
+            const filterParams = excelFilterManager.getAllParameters();
+            const paginationParams = cursorPaginationManager ? cursorPaginationManager.getApiParams() : {};
+
+            // Merge parameters
+            const combinedParams = {
+                ...filterParams,
+                ...paginationParams,
+                order_by: currentSortColumn,
+                order_dir: currentSortDirection
+            };
+
+            loadSessions(combinedParams);
+        }
+
+        function sortTable(column) {
+            // Toggle sort direction if same column
+            if (currentSortColumn === column) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortDirection = 'desc'; // Default to desc for new column
+            }
+
+            // Update sort icons
+            updateSortIcons(column);
+
+            // Reload data with new sort
+            loadCurrentPageData();
+        }
+
+        function updateSortIcons(activeColumn) {
+            // Remove all sort icons
+            document.querySelectorAll('th button i').forEach(icon => {
+                icon.className = 'ml-1 fas fa-sort text-gray-400 group-hover:text-gray-600';
+            });
+
+            // Add active sort icon
+            const activeHeader = document.querySelector(`th button[onclick="sortTable('${activeColumn}')"] i`);
+            if (activeHeader) {
+                const sortIcon = currentSortDirection === 'asc' ? 'fa-sort-up' : 'fa-sort-down';
+                activeHeader.className = `ml-1 fas ${sortIcon} text-blue-600`;
+            }
+        }
+
+        function refreshData() {
+            // Show loading state
+            const tbody = document.getElementById('tableBody');
+            const mobileCards = document.getElementById('mobileCards');
+
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                                    <i class="fas fa-sync-alt fa-spin text-blue-600"></i>
+                                </div>
+                                <p class="text-blue-600 font-medium">Refreshing data...</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            if (mobileCards) {
+                mobileCards.innerHTML = `
+                    <div class="text-center py-12">
+                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-sync-alt fa-spin text-blue-600"></i>
+                        </div>
+                        <p class="text-blue-600 font-medium">Refreshing data...</p>
+                    </div>
+                `;
+            }
+
+            // Reload current page data
+            setTimeout(() => {
+                loadCurrentPageData();
+            }, 500);
+        }
+
+        function exportToExcel() {
+            // Get current filters
+            const filterParams = excelFilterManager.getAllParameters();
+
+            // Build export URL with filters
+            const exportParams = new URLSearchParams();
+            Object.entries(filterParams.filters).forEach(([key, value]) => {
+                exportParams.append(`filter_${key}`, value);
+            });
+            exportParams.append('limit', filterParams.limit || 25);
+
+            // Download Excel file
+            const exportUrl = `/api/v1/uploads/export?${exportParams.toString()}`;
+            const link = document.createElement('a');
+            link.download = `upload_sessions_${new Date().toISOString().split('T')[0]}.xlsx`;
+            link.style.display = 'none';
+
+            // Add authorization header for fetch-based download
+            fetch(exportUrl, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                }
+                throw new Error(`Export failed: ${response.status} ${response.statusText}`);
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                link.href = url;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                alert('Export failed: ' + error.message);
+                console.error('Export error:', error);
+            });
+        }
 
         function toggleMobileMenu() {
             const menu = document.getElementById('mobile-menu');
@@ -284,9 +536,17 @@
             return statusConfig;
         }
 
-        async function loadSessions() {
+        async function loadSessions(params = {}) {
             try {
-                const response = await fetch('/api/v1/uploads', {
+                // Build query string from parameters
+                const queryString = Object.keys(params)
+                    .filter(key => params[key] !== undefined && params[key] !== '')
+                    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+                    .join('&');
+
+                const url = queryString ? `/api/v1/uploads?${queryString}` : '/api/v1/uploads';
+
+                const response = await fetch(url, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -299,8 +559,14 @@
                     const mobileCards = document.getElementById('mobileCards');
                     const emptyState = document.getElementById('emptyState');
 
+                    // Update pagination
+                    if (data.data.pagination && cursorPaginationManager) {
+                        cursorPaginationManager.updateData(data.data.pagination);
+                    }
+
                     // Update stats
                     const sessions = data.data.sessions;
+                    const pagination = data.data.pagination || {};
                     const totalSessions = sessions.length;
                     const completedSessions = sessions.filter(s => s.status === 'completed').length;
                     const totalRecords = sessions.reduce((sum, s) => sum + (s.total_rows || 0), 0);
@@ -449,8 +715,8 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // Reload sessions after successful deletion
-                    loadSessions();
+                    // Reload sessions after successful deletion using current state
+                    loadCurrentPageData();
                 } else {
                     alert('Failed to delete session: ' + (data.message || 'Unknown error'));
                 }
@@ -459,8 +725,11 @@
             }
         }
 
-        // Load sessions on page load
-        document.addEventListener('DOMContentLoaded', loadSessions);
+        // Initialize managers and load sessions on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeManagers();
+            loadCurrentPageData();
+        });
     </script>
 </body>
 </html>

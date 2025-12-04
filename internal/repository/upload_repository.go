@@ -2,7 +2,9 @@ package repository
 
 import (
 	"accounting-web/internal/models"
+	"accounting-web/internal/utils"
 	"fmt"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -812,4 +814,351 @@ func (r *UploadRepository) DeleteTransactionsBySessionCode(sessionCode string) e
 	query := "DELETE FROM transaction_data WHERE session_code = ?"
 	_, err := r.db.Exec(query, sessionCode)
 	return err
+}
+
+// Cursor Pagination Methods
+
+// GetSessionsWithCursor - Cursor-based pagination for upload sessions (OPTIMIZED)
+func (r *UploadRepository) GetSessionsWithCursor(params utils.PaginationParams, userID int, maxRecords int) ([]models.UploadSession, utils.PaginationMeta, error) {
+	var sessions []models.UploadSession
+	var total int64
+	var hasMore bool
+	var nextCursor *utils.Cursor
+
+	// Validate limit against maximum allowed
+	limit := utils.ValidatePaginationLimit(params.Limit, maxRecords)
+
+	// OPTIMIZATION: Use separate queries for count and data to avoid complex joins
+
+	// Step 1: Build base WHERE conditions (simplified)
+	whereConditions := []string{}
+	countArgs := []interface{}{}
+	dataArgs := []interface{}{}
+
+	// Add user filter if specified
+	if userID > 0 {
+		whereConditions = append(whereConditions, "user_id = ?")
+		countArgs = append(countArgs, userID)
+		dataArgs = append(dataArgs, userID)
+	}
+
+	// OPTIMIZATION: Simplified search - only search session_code (most common use case)
+	if params.Search != "" {
+		searchCondition := fmt.Sprintf("session_code LIKE '%%%s%%'", params.Search)
+		whereConditions = append(whereConditions, searchCondition)
+		countArgs = append(countArgs, params.Search)
+		dataArgs = append(dataArgs, params.Search)
+	}
+
+	// OPTIMIZATION: Simplified column filters - only use most important ones
+	if params.Filters != nil {
+		if status, ok := params.Filters["status"]; ok && status != "" {
+			whereConditions = append(whereConditions, "status = ?")
+			countArgs = append(countArgs, status)
+			dataArgs = append(dataArgs, status)
+		}
+
+		if sessionCode, ok := params.Filters["session_code"]; ok && sessionCode != "" {
+			sessionCodeStr := fmt.Sprintf("%v", sessionCode)
+			whereConditions = append(whereConditions, "session_code LIKE ?")
+			countArgs = append(countArgs, "%"+sessionCodeStr+"%")
+			dataArgs = append(dataArgs, "%"+sessionCodeStr+"%")
+		}
+	}
+
+	// Step 2: Simple count query (no complex filters for performance)
+	whereClause := ""
+	if len(whereConditions) > 0 {
+		whereClause = "WHERE " + strings.Join(whereConditions, " AND ")
+	}
+
+	// OPTIMIZATION: Fast count query
+	countQuery := "SELECT COUNT(*) FROM upload_sessions " + whereClause
+	err := r.db.Get(&total, countQuery, countArgs...)
+	if err != nil {
+		return nil, utils.PaginationMeta{}, err
+	}
+
+	// Apply total limit
+	if total > int64(maxRecords) {
+		total = int64(maxRecords)
+	}
+
+	// Step 3: Simplified cursor handling
+	var cursor *utils.Cursor
+	if params.Cursor != "" && params.Mode == "cursor" {
+		cursor, err = utils.DecodeCursor(params.Cursor)
+		if err == nil {
+			// Simple cursor condition - only use created_at for consistency
+			if whereClause == "" {
+				whereClause = "WHERE created_at < ?"
+			} else {
+				whereClause += " AND created_at < ?"
+			}
+			dataArgs = append(dataArgs, cursor.CreatedAt)
+		}
+	}
+
+	// OPTIMIZATION: Simplified order by - always use created_at DESC for consistency
+	orderByClause := "ORDER BY created_at DESC, id DESC"
+
+	// Step 4: Main data query (optimized)
+	query := fmt.Sprintf(`
+		SELECT id, session_code, user_id, filename, file_path,
+		       total_rows, processed_rows, failed_rows, status,
+		       error_message, created_at, updated_at
+		FROM upload_sessions
+		%s
+		%s
+		LIMIT ?`, whereClause, orderByClause)
+
+	// Add limit with +1 for hasMore check
+	dataArgs = append(dataArgs, limit+1)
+
+	err = r.db.Select(&sessions, query, dataArgs...)
+	if err != nil {
+		return nil, utils.PaginationMeta{}, err
+	}
+
+	// Step 5: Process results
+	if len(sessions) > limit {
+		hasMore = true
+		sessions = sessions[:limit] // Remove the extra record
+	} else {
+		hasMore = false
+	}
+
+	// Build next cursor (simplified - only use created_at)
+	if hasMore && len(sessions) > 0 {
+		lastSession := sessions[len(sessions)-1]
+		nextCursor = &utils.Cursor{
+			ID:        lastSession.ID,
+			CreatedAt: lastSession.CreatedAt,
+		}
+	}
+
+	// Calculate pagination metadata
+	paginationMeta := utils.CalculateCursorPagination(
+		limit,
+		total,
+		hasMore,
+		nextCursor,
+		nil, // Simplified - no prev cursor for performance
+		params.Mode,
+	)
+
+	return sessions, paginationMeta, nil
+}
+
+// GetTransactionsBySessionCodeWithCursor - Cursor-based pagination for transactions
+func (r *UploadRepository) GetTransactionsBySessionCodeWithCursor(
+	sessionCode string,
+	params utils.PaginationParams,
+	maxRecords int,
+) ([]models.TransactionData, utils.PaginationMeta, error) {
+	var transactions []models.TransactionData
+	var total int64
+	var hasMore bool
+	var nextCursor *utils.Cursor
+	var prevCursor *utils.Cursor
+
+	// Validate limit against maximum allowed
+	limit := utils.ValidatePaginationLimit(params.Limit, maxRecords)
+
+	// Get total count - no max limit for session detail to show all records
+	countQuery := "SELECT COUNT(*) FROM transaction_data WHERE session_code = ?"
+	err := r.db.Get(&total, countQuery, sessionCode)
+	if err != nil {
+		return nil, utils.PaginationMeta{}, err
+	}
+
+	// Only apply limit for pagination pages, not for total count
+	// This allows users to see all records in session detail
+
+	// Build cursor condition
+	var cursor *utils.Cursor
+	whereClause := "WHERE td.session_code = ?"
+	args := []interface{}{sessionCode}
+
+	if params.Cursor != "" && params.Mode == "cursor" {
+		var err error
+		cursor, err = utils.DecodeCursor(params.Cursor)
+		if err != nil {
+			// Invalid cursor, fall back to first page
+			cursor = nil
+		} else {
+			// Add cursor condition
+			cursorCondition := utils.BuildTransactionCursorCondition(cursor, "desc", sessionCode)
+			if cursorCondition != "" {
+				whereClause += " AND " + cursorCondition
+			}
+		}
+	}
+
+	// Build order by clause (default: by ID for consistency)
+	orderByClause := "ORDER BY td.id DESC"
+	if params.OrderBy != "" && params.OrderDir != "" {
+		switch strings.ToLower(params.OrderBy) {
+		case "id":
+			orderByClause = fmt.Sprintf("ORDER BY td.id %s", params.OrderDir)
+		case "posting_date":
+			orderByClause = fmt.Sprintf("ORDER BY td.posting_date %s, td.id DESC", params.OrderDir)
+		case "account":
+			orderByClause = fmt.Sprintf("ORDER BY td.account %s, td.id DESC", params.OrderDir)
+		case "debet":
+			orderByClause = fmt.Sprintf("ORDER BY td.debet %s, td.id DESC", params.OrderDir)
+		case "credit":
+			orderByClause = fmt.Sprintf("ORDER BY td.credit %s, td.id DESC", params.OrderDir)
+		default:
+			orderByClause = fmt.Sprintf("ORDER BY td.id %s", params.OrderDir)
+		}
+	}
+
+	// Main query with JOIN to accounts for additional data and withholding accounts
+	query := fmt.Sprintf(`
+		SELECT
+			td.document_type,
+			td.document_number,
+			td.posting_date,
+			td.account,
+			td.account_name,
+			td.keterangan,
+			td.debet,
+			td.credit,
+			td.net,
+			td.id,
+			td.session_id,
+			td.session_code,
+			td.user_id,
+			td.file_path,
+			td.filename,
+			td.analisa_nature_akun,
+			td.analisa_koreksi_obyek,
+			td.koreksi,
+			td.obyek,
+			td.um_pajak_db,
+			td.pm_db,
+			td.wth_21_cr,
+			td.wth_23_cr,
+			td.wth_26_cr,
+			td.wth_4_2_cr,
+			td.wth_15_cr,
+			td.pk_cr,
+			td.analisa_tambahan,
+			td.is_processed,
+			td.processing_error,
+			td.created_at,
+			td.updated_at,
+			accounts.nature as nature_akun,
+			accounts.koreksi_obyek as analisa_kot,
+			-- Withholding account joins for proper names
+			COALESCE(acc_wth_42.account_name, td.wth_4_2_cr) AS withholding_pph_42,
+			COALESCE(acc_wth_15.account_name, td.wth_15_cr) AS withholding_pph_15,
+			COALESCE(acc_wth_21.account_name, td.wth_21_cr) AS withholding_pph_21,
+			COALESCE(acc_wth_23.account_name, td.wth_23_cr) AS withholding_pph_23,
+			COALESCE(acc_wth_26.account_name, td.wth_26_cr) AS withholding_pph_26,
+			COALESCE(acc_pk.account_name, td.pk_cr) AS pk_cr_account
+		FROM transaction_data td
+		-- Main account join
+		LEFT JOIN accounts ON td.account = accounts.account_code
+		-- Withholding tax account joins
+		LEFT JOIN accounts acc_wth_42 ON td.wth_4_2_cr = acc_wth_42.account_code AND acc_wth_42.koreksi_obyek = 'Wth 4.2 Cr'
+		LEFT JOIN accounts acc_wth_15 ON td.wth_15_cr = acc_wth_15.account_code AND acc_wth_15.koreksi_obyek = 'Wth 1.5 Cr'
+		LEFT JOIN accounts acc_wth_21 ON td.wth_21_cr = acc_wth_21.account_code AND acc_wth_21.koreksi_obyek = 'Wth 2.1 Cr'
+		LEFT JOIN accounts acc_wth_23 ON td.wth_23_cr = acc_wth_23.account_code AND acc_wth_23.koreksi_obyek = 'Wth 2.3 Cr'
+		LEFT JOIN accounts acc_wth_26 ON td.wth_26_cr = acc_wth_26.account_code AND acc_wth_26.koreksi_obyek = 'Wth 2.6 Cr'
+		LEFT JOIN accounts acc_pk ON td.pk_cr = acc_pk.account_code AND acc_pk.koreksi_obyek = 'PK Cr'
+		%s
+		%s
+		LIMIT ?`, whereClause, orderByClause)
+
+	args = append(args, limit+1) // +1 to check if there are more records
+
+	err = r.db.Select(&transactions, query, args...)
+	if err != nil {
+		return nil, utils.PaginationMeta{}, err
+	}
+
+	// Check if there are more records
+	if len(transactions) > limit {
+		hasMore = true
+		transactions = transactions[:limit] // Remove the extra record
+	} else {
+		hasMore = false
+	}
+
+	// Build next cursor
+	if hasMore && len(transactions) > 0 {
+		lastTransaction := transactions[len(transactions)-1]
+		nextCursor = &utils.Cursor{
+			ID:         int(lastTransaction.ID),
+			SessionCode: lastTransaction.SessionCode,
+		}
+	}
+
+	// Build prev cursor
+	if cursor != nil {
+		if len(transactions) > 0 {
+			firstTransaction := transactions[0]
+			prevCursor = &utils.Cursor{
+				ID:         int(firstTransaction.ID),
+				SessionCode: firstTransaction.SessionCode,
+			}
+		}
+	}
+
+	// Calculate pagination metadata
+	paginationMeta := utils.CalculateCursorPagination(
+		limit,
+		total,
+		hasMore,
+		nextCursor,
+		prevCursor,
+		params.Mode,
+	)
+
+	return transactions, paginationMeta, nil
+}
+
+// GetTotalSessionsCount returns total count of sessions (with maximum limit)
+func (r *UploadRepository) GetTotalSessionsCount(userID int, maxRecords int) (int64, error) {
+	var total int64
+
+	query := "SELECT COUNT(*) FROM upload_sessions"
+	args := []interface{}{}
+
+	if userID > 0 {
+		query += " WHERE user_id = ?"
+		args = append(args, userID)
+	}
+
+	err := r.db.Get(&total, query, args...)
+	if err != nil {
+		return 0, err
+	}
+
+	// Apply maximum limit
+	if total > int64(maxRecords) {
+		total = int64(maxRecords)
+	}
+
+	return total, nil
+}
+
+// GetTotalTransactionsBySessionCodeCount returns total count of transactions for a session (with maximum limit)
+func (r *UploadRepository) GetTotalTransactionsBySessionCodeCount(sessionCode string, maxRecords int) (int64, error) {
+	var total int64
+
+	query := "SELECT COUNT(*) FROM transaction_data WHERE session_code = ?"
+	err := r.db.Get(&total, query, sessionCode)
+	if err != nil {
+		return 0, err
+	}
+
+	// Apply maximum limit
+	if total > int64(maxRecords) {
+		total = int64(maxRecords)
+	}
+
+	return total, nil
 }

@@ -535,9 +535,8 @@ func (h *UploadHandler) GetSessions(c *fiber.Ctx) error {
 		role = fmt.Sprintf("%v", roleInterface)
 	}
 
-	// Get pagination parameters
-	params := utils.GetPaginationParams(c)
-	offset := utils.GetOffset(params.Page, params.Limit)
+	// Get pagination parameters with cursor support
+	params := utils.GetPaginationParamsWithCursor(c)
 
 	// Admin can see all sessions, user can only see their own
 	filterUserID := 0
@@ -545,13 +544,34 @@ func (h *UploadHandler) GetSessions(c *fiber.Ctx) error {
 		filterUserID = userID
 	}
 
-	// Get upload sessions - OPTIMIZED: Only query upload_sessions table for ultra-fast loading
+	// Maximum records limit for cursor pagination
+	maxRecords := 10000
+
 	var sessions []models.UploadSession
-	var total int
+	var pagination utils.PaginationMeta
 	var err error
 
-	// Use ultra-fast optimized query - only touches upload_sessions table
-	sessions, total, err = h.uploadRepo.GetSessionsOptimized(params.Limit, offset, filterUserID)
+	// Use cursor pagination by default, fall back to offset if mode=offset
+	if params.Mode == "cursor" {
+		sessions, pagination, err = h.uploadRepo.GetSessionsWithCursor(params, filterUserID, maxRecords)
+	} else {
+		// Fallback to original offset-based pagination
+		offset := utils.GetOffset(params.Page, params.Limit)
+		var total int
+		sessions, total, err = h.uploadRepo.GetSessionsOptimized(params.Limit, offset, filterUserID)
+		if err != nil {
+			return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve sessions", err)
+		}
+
+		// Apply maximum limit
+		if total > maxRecords {
+			total = maxRecords
+		}
+
+		pagination = utils.CalculatePagination(params.Page, params.Limit, int64(total))
+		pagination.Mode = "offset"
+	}
+
 	if err != nil {
 		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve sessions", err)
 	}
@@ -576,9 +596,6 @@ func (h *UploadHandler) GetSessions(c *fiber.Ctx) error {
 		}
 		allSessions = append(allSessions, sessionMap)
 	}
-
-	// Calculate pagination - simplified since we're only using upload_sessions
-	pagination := utils.CalculatePagination(params.Page, params.Limit, int64(total))
 
 	responseData := fiber.Map{
 		"sessions": allSessions,
@@ -668,16 +685,40 @@ func (h *UploadHandler) GetTransactionsBySessionCode(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Session code is required", nil)
 	}
 
-	// Get pagination parameters
-	params := utils.GetPaginationParams(c)
-	offset := utils.GetOffset(params.Page, params.Limit)
+	// Get pagination parameters with cursor support
+	params := utils.GetPaginationParamsWithCursor(c)
 
-	transactions, total, err := h.uploadRepo.GetTransactionsBySessionCode(sessionCode, params.Limit, offset)
+	// Maximum records limit for cursor pagination - increased for session detail
+	maxRecords := 1000000 // Allow up to 1 million records for session detail
+
+	var transactions []models.TransactionData
+	var pagination utils.PaginationMeta
+	var err error
+
+	// Use cursor pagination by default, fall back to offset if mode=offset
+	if params.Mode == "cursor" {
+		transactions, pagination, err = h.uploadRepo.GetTransactionsBySessionCodeWithCursor(sessionCode, params, maxRecords)
+	} else {
+		// Fallback to original offset-based pagination
+		offset := utils.GetOffset(params.Page, params.Limit)
+		var total int
+		transactions, total, err = h.uploadRepo.GetTransactionsBySessionCode(sessionCode, params.Limit, offset)
+		if err != nil {
+			return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve transactions", err)
+		}
+
+		// Apply maximum limit
+		if total > maxRecords {
+			total = maxRecords
+		}
+
+		pagination = utils.CalculatePagination(params.Page, params.Limit, int64(total))
+		pagination.Mode = "offset"
+	}
+
 	if err != nil {
 		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve transactions", err)
 	}
-
-	pagination := utils.CalculatePagination(params.Page, params.Limit, int64(total))
 
 	responseData := fiber.Map{
 		"session_code":  sessionCode,
@@ -1023,14 +1064,150 @@ func (h *UploadHandler) ExportSessionByCode(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Session code is required", nil)
 	}
 
-	// Get all transactions using session_code (no pagination) - optimized approach
-	transactions, _, err := h.uploadRepo.GetTransactionsBySessionCode(sessionCode, 1000000, 0)
+	// Log export request for debugging
+	utils.GetLogger().Info("ExportSessionByCode called", map[string]interface{}{
+		"session_code": sessionCode,
+		"user_id":      c.Locals("user_id"),
+		"role":         c.Locals("role"),
+	})
+
+	// Get all transactions using session_code - NO LIMIT for export
+	// Use cursor pagination with very high limit to get ALL data
+	maxRecords := 1000000 // Very high limit for export
+	params := utils.PaginationParams{
+		Mode:  "offset",
+		Limit: maxRecords,
+		Page:  1,
+	}
+
+	// Use the new cursor-based method to get all transactions
+	transactions, _, err := h.uploadRepo.GetTransactionsBySessionCodeWithCursor(sessionCode, params, maxRecords)
 	if err != nil {
-		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve transactions", err)
+		utils.GetLogger().Error("Failed to retrieve transactions with cursor method, trying fallback", map[string]interface{}{
+			"session_code": sessionCode,
+			"error":        err.Error(),
+		})
+
+		// Fallback to original method if cursor method fails
+		transactions, _, err = h.uploadRepo.GetTransactionsBySessionCode(sessionCode, maxRecords, 0)
+		if err != nil {
+			utils.GetLogger().Error("Failed to retrieve transactions with fallback method", map[string]interface{}{
+				"session_code": sessionCode,
+				"error":        err.Error(),
+			})
+			return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve transactions", err)
+		}
+	}
+
+	utils.GetLogger().Info("Retrieved transactions for export", map[string]interface{}{
+		"session_code": sessionCode,
+		"count":        len(transactions),
+	})
+
+	if len(transactions) == 0 {
+		return utils.ErrorResponse(c, fiber.StatusNotFound, "No transactions found for this session", nil)
+	}
+
+	// Generate export file with timestamp
+	timestamp := time.Now().Format("20060102_150405")
+	exportFileName := fmt.Sprintf("transactions_%s_%s.xlsx", sessionCode, timestamp)
+	exportPath := filepath.Join("./storage/exports", exportFileName)
+
+	// Ensure the exports directory exists
+	if err := os.MkdirAll("./storage/exports", 0755); err != nil {
+		utils.GetLogger().Error("Failed to create exports directory", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create exports directory", err)
+	}
+
+	// Export transactions to Excel
+	if err := h.excelService.ExportTransactions(transactions, exportPath); err != nil {
+		utils.GetLogger().Error("Failed to export transactions to Excel", map[string]interface{}{
+			"session_code": sessionCode,
+			"error":        err.Error(),
+		})
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to export data", err)
+	}
+
+	utils.GetLogger().Info("Successfully exported transactions", map[string]interface{}{
+		"session_code": sessionCode,
+		"file_name":    exportFileName,
+		"count":        len(transactions),
+	})
+
+	return c.Download(exportPath, exportFileName)
+}
+
+// ExportSessionsList exports filtered list of upload sessions
+func (h *UploadHandler) ExportSessionsList(c *fiber.Ctx) error {
+	// Get pagination and filter parameters
+	params := utils.GetPaginationParamsWithCursor(c)
+
+	// Get user ID and role
+	userIDInterface := c.Locals("user_id")
+	if userIDInterface == nil {
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "User not authenticated", nil)
+	}
+
+	var userID int
+	switch v := userIDInterface.(type) {
+	case int:
+		userID = v
+	case float64:
+		userID = int(v)
+	case string:
+		if id, err := strconv.Atoi(v); err == nil {
+			userID = id
+		} else {
+			return utils.ErrorResponse(c, fiber.StatusUnauthorized, "Invalid user ID format", nil)
+		}
+	default:
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "Invalid user ID type", nil)
+	}
+
+	roleInterface := c.Locals("role")
+	var role string
+	if roleInterface != nil {
+		role = fmt.Sprintf("%v", roleInterface)
+	}
+
+	// Admin can see all sessions, user can only see their own
+	filterUserID := 0
+	if role != "admin" {
+		filterUserID = userID
+	}
+
+	// Maximum records for export (use maximum allowed)
+	maxRecords := 10000
+	params.Limit = maxRecords
+
+	// Get sessions with filters
+	sessions, _, err := h.uploadRepo.GetSessionsWithCursor(params, filterUserID, maxRecords)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve sessions", err)
+	}
+
+	// Convert sessions to export format
+	exportData := make([]map[string]interface{}, len(sessions))
+	for i, session := range sessions {
+		exportData[i] = map[string]interface{}{
+			"ID":           session.ID,
+			"Session Code": session.SessionCode,
+			"User ID":      session.UserID,
+			"Filename":     session.Filename,
+			"Total Rows":   session.TotalRows,
+			"Processed":    session.ProcessedRows,
+			"Failed":       session.FailedRows,
+			"Status":       session.Status,
+			"Error Message": session.ErrorMessage,
+			"Created At":   session.CreatedAt.Format("2006-01-02 15:04:05"),
+			"Updated At":   session.UpdatedAt.Format("2006-01-02 15:04:05"),
+		}
 	}
 
 	// Generate export file
-	exportFileName := fmt.Sprintf("export_%s_%s.xlsx", sessionCode, time.Now().Format("20060102_150405"))
+	exportFileName := fmt.Sprintf("upload_sessions_export_%s.xlsx", time.Now().Format("20060102_150405"))
 	exportPath := filepath.Join("./storage/exports", exportFileName)
 
 	// Ensure the exports directory exists
@@ -1038,9 +1215,9 @@ func (h *UploadHandler) ExportSessionByCode(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create exports directory", err)
 	}
 
-	// Export transactions to Excel
-	if err := h.excelService.ExportTransactions(transactions, exportPath); err != nil {
-		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to export data", err)
+	// Export sessions to Excel using ExcelService
+	if err := h.excelService.ExportSessionsList(exportData, exportPath); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to export sessions", err)
 	}
 
 	return c.Download(exportPath, exportFileName)

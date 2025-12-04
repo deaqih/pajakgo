@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Pajak GO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass-navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.1), 0 15px 15px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--tw-gradient-from) 0%, var(--tw-gradient-to) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(180deg); }
+        }
+
+        .action-card {
+            background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .action-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .action-card:hover::before {
+            opacity: 1;
+        }
+
+        .mobile-menu {
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .mobile-menu.active {
+            transform: translateX(0);
+        }
+
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .count-up {
+            transition: all 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">
+    <!-- Modern Navbar -->
+    <nav class="glass-navbar sticky top-0 z-50 shadow-soft">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <!-- Logo and Title -->
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="flex items-center space-x-3 group">
+                        <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-medium group-hover:shadow-large transition-all">
+                            <i class="fas fa-chart-pie text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold gradient-text">Pajak GO</h1>
+                            <p class="text-xs text-gray-500">Dashboard</p>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <div class="flex items-center space-x-3 bg-gray-100 rounded-xl px-4 py-2">
+                        <i class="fas fa-user-circle text-gray-600"></i>
+                        <span id="userDisplay" class="text-gray-700 font-medium"></span>
+                    </div>
+                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl hover-lift flex items-center space-x-2">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <div class="md:hidden">
+                    <button onclick="toggleMobileMenu()" class="text-gray-600 hover:text-gray-900 p-2">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="mobile-menu fixed top-0 right-0 w-64 h-full bg-white shadow-2xl md:hidden z-50">
+            <div class="p-4">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold">Menu</h3>
+                    <button onclick="toggleMobileMenu()" class="text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-3 bg-gray-100 rounded-xl p-3">
+                        <i class="fas fa-user-circle text-gray-600"></i>
+                        <span id="userDisplayMobile" class="text-gray-700 font-medium"></span>
+                    </div>
+                    <button onclick="logout()" class="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-xl flex items-center justify-center space-x-2">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Welcome Section -->
+        <div class="fade-in mb-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h2 class="text-4xl font-bold text-gray-900 mb-2">Welcome Back!</h2>
+                    <p class="text-gray-600">Here's your data processing overview</p>
+                </div>
+                <div class="mt-4 sm:mt-0">
+                    <p class="text-sm text-gray-500">Last login: <span id="lastLogin" class="font-medium">Just now</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="stat-card rounded-2xl p-6 shadow-soft card-hover text-white fade-in" style="--tw-gradient-from: #3b82f6; --tw-gradient-to: #1e40af;">
+                <div class="relative z-10">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-white/90 text-sm font-medium mb-1">Total Uploads</p>
+                            <p id="totalUploads" class="text-3xl font-bold count-up">0</p>
+                        </div>
+                        <div class="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-upload text-2xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm">
+                        <i class="fas fa-arrow-up mr-1 text-white/80"></i>
+                        <span class="text-white/80">+12% from last month</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card rounded-2xl p-6 shadow-soft card-hover text-white fade-in" style="--tw-gradient-from: #10b981; --tw-gradient-to: #047857;">
+                <div class="relative z-10">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-white/90 text-sm font-medium mb-1">Completed</p>
+                            <p id="completedCount" class="text-3xl font-bold count-up">0</p>
+                        </div>
+                        <div class="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-check-circle text-2xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm">
+                        <i class="fas fa-arrow-up mr-1 text-white/80"></i>
+                        <span class="text-white/80">+8% from last month</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card rounded-2xl p-6 shadow-soft card-hover text-white fade-in" style="--tw-gradient-from: #f59e0b; --tw-gradient-to: #d97706;">
+                <div class="relative z-10">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-white/90 text-sm font-medium mb-1">Processing</p>
+                            <p id="processingCount" class="text-3xl font-bold count-up">0</p>
+                        </div>
+                        <div class="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-clock text-2xl pulse-animation"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm">
+                        <i class="fas fa-info-circle mr-1 text-white/80"></i>
+                        <span class="text-white/80">Currently active</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card rounded-2xl p-6 shadow-soft card-hover text-white fade-in" style="--tw-gradient-from: #ef4444; --tw-gradient-to: #dc2626;">
+                <div class="relative z-10">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-white/90 text-sm font-medium mb-1">Failed</p>
+                            <p id="failedCount" class="text-3xl font-bold count-up">0</p>
+                        </div>
+                        <div class="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-exclamation-triangle text-2xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm">
+                        <i class="fas fa-arrow-down mr-1 text-white/80"></i>
+                        <span class="text-white/80">-3% from last month</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-2xl shadow-soft overflow-hidden mb-8 fade-in">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-900">Quick Actions</h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                    <a href="/uploads/new" class="action-card rounded-xl p-6 text-white text-center hover-lift" style="--bg-start: #3b82f6; --bg-end: #1e40af;">
+                        <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-cloud-upload-alt text-2xl"></i>
+                        </div>
+                        <h4 class="font-semibold text-lg mb-1">Upload Data</h4>
+                        <p class="text-white/80 text-sm">Start new upload</p>
+                    </a>
+
+                    <a href="/uploads" class="action-card rounded-xl p-6 text-white text-center hover-lift" style="--bg-start: #10b981; --bg-end: #047857;">
+                        <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-list-alt text-2xl"></i>
+                        </div>
+                        <h4 class="font-semibold text-lg mb-1">View Sessions</h4>
+                        <p class="text-white/80 text-sm">Browse uploads</p>
+                    </a>
+
+                    <a href="/accounts" class="action-card rounded-xl p-6 text-white text-center hover-lift" style="--bg-start: #8b5cf6; --bg-end: #6d28d9;">
+                        <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-database text-2xl"></i>
+                        </div>
+                        <h4 class="font-semibold text-lg mb-1">Accounts</h4>
+                        <p class="text-white/80 text-sm">Manage data</p>
+                    </a>
+
+                    <a href="/koreksi-rules" class="action-card rounded-xl p-6 text-white text-center hover-lift" style="--bg-start: #f97316; --bg-end: #ea580c;">
+                        <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-cogs text-2xl"></i>
+                        </div>
+                        <h4 class="font-semibold text-lg mb-1">Rules</h4>
+                        <p class="text-white/80 text-sm">Configure rules</p>
+                    </a>
+
+                    <a href="/additional-analyses" class="action-card rounded-xl p-6 text-white text-center hover-lift" style="--bg-start: #ec4899; --bg-end: #be185d;">
+                        <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-chart-line text-2xl"></i>
+                        </div>
+                        <h4 class="font-semibold text-lg mb-1">Analysis</h4>
+                        <p class="text-white/80 text-sm">Additional analysis</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Master Data Management -->
+        <div class="bg-white rounded-2xl shadow-soft overflow-hidden fade-in">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-900">Master Data Management</h3>
+                <p class="text-gray-600 mt-1">Configure your tax processing rules and data</p>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <a href="/accounts" class="group border border-gray-200 rounded-xl p-6 hover:border-primary-500 hover:shadow-large transition-all card-hover">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center group-hover:bg-primary-100 transition-colors">
+                                <i class="fas fa-list-alt text-blue-600 group-hover:text-primary-600 transition-colors text-xl"></i>
+                            </div>
+                            <h4 class="ml-3 font-semibold text-lg text-gray-900">Accounts</h4>
+                        </div>
+                        <p class="text-gray-600 text-sm">Manage account master data and configurations</p>
+                        <div class="mt-4 flex items-center text-primary-600 text-sm font-medium group-hover:text-primary-700 transition-colors">
+                            <span>Manage</span>
+                            <i class="fas fa-arrow-right ml-1"></i>
+                        </div>
+                    </a>
+
+                    <a href="/koreksi-rules" class="group border border-gray-200 rounded-xl p-6 hover:border-green-500 hover:shadow-large transition-all card-hover">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                                <i class="fas fa-edit text-green-600 group-hover:text-green-700 transition-colors text-xl"></i>
+                            </div>
+                            <h4 class="ml-3 font-semibold text-lg text-gray-900">Koreksi Rules</h4>
+                        </div>
+                        <p class="text-gray-600 text-sm">Manage koreksi keyword processing rules</p>
+                        <div class="mt-4 flex items-center text-green-600 text-sm font-medium group-hover:text-green-700 transition-colors">
+                            <span>Configure</span>
+                            <i class="fas fa-arrow-right ml-1"></i>
+                        </div>
+                    </a>
+
+                    <a href="/obyek-rules" class="group border border-gray-200 rounded-xl p-6 hover:border-purple-500 hover:shadow-large transition-all card-hover">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                                <i class="fas fa-tags text-purple-600 group-hover:text-purple-700 transition-colors text-xl"></i>
+                            </div>
+                            <h4 class="ml-3 font-semibold text-lg text-gray-900">Obyek Rules</h4>
+                        </div>
+                        <p class="text-gray-600 text-sm">Manage obyek keyword categorization</p>
+                        <div class="mt-4 flex items-center text-purple-600 text-sm font-medium group-hover:text-purple-700 transition-colors">
+                            <span>Setup</span>
+                            <i class="fas fa-arrow-right ml-1"></i>
+                        </div>
+                    </a>
+
+                    <a href="/withholding-tax-rules" class="group border border-gray-200 rounded-xl p-6 hover:border-red-500 hover:shadow-large transition-all card-hover">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center group-hover:bg-red-200 transition-colors">
+                                <i class="fas fa-percent text-red-600 group-hover:text-red-700 transition-colors text-xl"></i>
+                            </div>
+                            <h4 class="ml-3 font-semibold text-lg text-gray-900">Withholding Tax</h4>
+                        </div>
+                        <p class="text-gray-600 text-sm">Configure tax calculation rules</p>
+                        <div class="mt-4 flex items-center text-red-600 text-sm font-medium group-hover:text-red-700 transition-colors">
+                            <span>Configure</span>
+                            <i class="fas fa-arrow-right ml-1"></i>
+                        </div>
+                    </a>
+
+                    <a href="/tax-keywords" class="group border border-gray-200 rounded-xl p-6 hover:border-yellow-500 hover:shadow-large transition-all card-hover">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center group-hover:bg-yellow-200 transition-colors">
+                                <i class="fas fa-key text-yellow-600 group-hover:text-yellow-700 transition-colors text-xl"></i>
+                            </div>
+                            <h4 class="ml-3 font-semibold text-lg text-gray-900">Tax Keywords</h4>
+                        </div>
+                        <p class="text-gray-600 text-sm">Manage input/output tax keywords</p>
+                        <div class="mt-4 flex items-center text-yellow-600 text-sm font-medium group-hover:text-yellow-700 transition-colors">
+                            <span>Manage</span>
+                            <i class="fas fa-arrow-right ml-1"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        // Display user info
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        document.getElementById('userDisplay').textContent = user.username || 'User';
+        document.getElementById('userDisplayMobile').textContent = user.username || 'User';
+
+        // Toggle mobile menu
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('active');
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+
+        // Animate counter
+        function animateCounter(elementId, target, duration = 2000) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            const start = 0;
+            const increment = target / (duration / 16);
+            let current = start;
+
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    current = target;
+                    clearInterval(timer);
+                }
+                element.textContent = Math.floor(current).toLocaleString();
+                element.classList.add('count-up');
+            }, 16);
+        }
+
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('/api/v1/uploads', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.data.sessions) {
+                    const sessions = data.data.sessions;
+                    const totalUploads = sessions.length;
+                    const completedCount = sessions.filter(s => s.status === 'completed').length;
+                    const processingCount = sessions.filter(s => s.status === 'processing').length;
+                    const failedCount = sessions.filter(s => s.status === 'failed').length;
+
+                    // Animate counters
+                    animateCounter('totalUploads', totalUploads);
+                    animateCounter('completedCount', completedCount);
+                    animateCounter('processingCount', processingCount);
+                    animateCounter('failedCount', failedCount);
+                }
+            } catch (error) {
+                console.error('Failed to load dashboard data:', error);
+                // Set default values on error
+                animateCounter('totalUploads', 0);
+                animateCounter('completedCount', 0);
+                animateCounter('processingCount', 0);
+                animateCounter('failedCount', 0);
+            }
+        }
+
+        // Set last login time
+        function setLastLogin() {
+            const lastLoginElement = document.getElementById('lastLogin');
+            if (lastLoginElement) {
+                const now = new Date();
+                lastLoginElement.textContent = now.toLocaleString('id-ID', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    day: 'numeric',
+                    month: 'short'
+                });
+            }
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboardData();
+            setLastLogin();
+        });
+    </script>
+</body>
+</html>

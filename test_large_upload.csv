@@ -1,0 +1,6 @@
+Document Type,Document Number,Posting Date,Account,Account Name,Keterangan,Debet,Credit,Net
+Invoice,INV-001,2024-01-15,6101,Penjualan Barang,Penjualan laptop,0,12000000,12000000
+Invoice,INV-002,2024-01-16,1101,Kas,Pembayaran tunai,5000000,0,5000000
+Payment,PAY-001,2024-01-17,2101,Hutang Usaha,Pembayaran supplier,3000000,0,3000000
+Journal,JRNL-001,2024-01-18,5101,Beban Gaji,Gaji karyawan Januari,8000000,0,8000000
+Receipt,RCT-001,2024-01-19,4101,Pendapatan Jasa,Pendapatan konsultasi,0,7500000,7500000

@@ -1,0 +1,3 @@
+Posting Date,Document Number,Document Type,Account,Account Name,Description,Debit,Credit,Net
+2024-01-01,INV001,Invoice,1001,Cash Account,Test transaction,1000,0,1000
+2024-01-02,INV002,Invoice,2001,Revenue Account,Test transaction 2,0,500,500

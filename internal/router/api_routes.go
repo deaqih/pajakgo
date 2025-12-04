@@ -145,6 +145,7 @@ func SetupAPIRoutes(
 	uploads.Post("/", uploadHandler.UploadFile)
 	uploads.Post("/multiple", uploadHandler.UploadMultipleFiles)
 	uploads.Get("/", uploadHandler.GetSessions)
+	uploads.Get("/export", uploadHandler.ExportSessionsList) // New export for sessions list
 	uploads.Get("/template", uploadHandler.DownloadTemplate)
 	uploads.Get("/:id", uploadHandler.GetSessionDetail)
 	uploads.Get("/session/:session_code", uploadHandler.GetSessionDetailBySessionCode) // New session code-based detail
