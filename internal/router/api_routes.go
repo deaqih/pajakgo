@@ -153,6 +153,7 @@ func SetupAPIRoutes(
 	uploads.Get("/:id/transactions", uploadHandler.GetTransactions)
 	uploads.Post("/:id/process", uploadHandler.ProcessSession)
 	uploads.Post("/:id/cancel", uploadHandler.CancelSession)
+	uploads.Post("/session/:session_code/propagate", uploadHandler.PropagateDocumentNumberFields) // New endpoint for manual propagation
 	uploads.Get("/:id/export", uploadHandler.ExportSession)
 	uploads.Get("/session/:session_code/export", uploadHandler.ExportSessionByCode)
 	uploads.Delete("/:id", uploadHandler.DeleteSession)

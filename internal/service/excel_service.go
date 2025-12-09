@@ -158,18 +158,18 @@ func (s *ExcelService) ExportTransactions(transactions []models.TransactionData,
 			fmt.Sprintf("%.2f", tx.Credit),
 			fmt.Sprintf("%.2f", tx.Net),
 			safeString(tx.NatureAkun),
-			safeString(tx.AnalisaKOT),
+			safeString(tx.AnalisaKOT), // Analisa K-O-T (propagated from koreksi_obyek)
 			safeString(tx.AnalisaTambahan),
 			safeString(tx.Koreksi),
 			safeString(tx.Obyek),
-			nullableToStringFloat64(tx.UmPajakDB),
-			nullableToStringFloat64(tx.PmDB),
-			safeString(tx.WithholdingPph21),
-			safeString(tx.WithholdingPph23),
-			safeString(tx.WithholdingPph26),
-			safeString(tx.WithholdingPph42),
-			safeString(tx.WithholdingPph15),
-			safeString(tx.PkCrAccount),
+			nullableToStringFloat64(tx.UmPajakDB), // Numeric value (propagated)
+			nullableToStringFloat64(tx.PmDB),      // Numeric value (propagated)
+			nullableToStringFloat64(tx.Wth21Cr),   // Numeric value (propagated) - not label
+			nullableToStringFloat64(tx.Wth23Cr),   // Numeric value (propagated) - not label
+			nullableToStringFloat64(tx.Wth26Cr),   // Numeric value (propagated) - not label
+			nullableToStringFloat64(tx.Wth42Cr),   // Numeric value (propagated) - not label
+			nullableToStringFloat64(tx.Wth15Cr),   // Numeric value (propagated) - not label
+			nullableToStringFloat64(tx.PkCr),      // Numeric value (propagated) - not label
 			func() string {
 				if tx.IsProcessed {
 					return "Yes"

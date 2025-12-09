@@ -114,6 +114,15 @@ func (h *ProcessingTaskHandler) Handle(ctx context.Context, task *asynq.Task) er
 		log.Printf("Processed %d/%d transactions (%.2f%%)", totalProcessed, session.TotalRows, progress)
 	}
 
+	// Propagate field values to all rows with the same document_number
+	log.Printf("Propagating field values for document_numbers in session %s", payload.SessionCode)
+	if err := h.uploadRepo.PropagateDocumentNumberFields(payload.SessionCode); err != nil {
+		log.Printf("Warning: Failed to propagate document number fields: %v", err)
+		// Don't fail the entire processing, just log the warning
+	} else {
+		log.Printf("Successfully propagated field values for session %s", payload.SessionCode)
+	}
+
 	// Mark session as completed
 	session.ProcessedRows = totalProcessed
 	session.FailedRows = totalFailed

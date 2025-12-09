@@ -1,0 +1,190 @@
+RANGKUMAN SISTEM PROPAGATION - PAJAK GO
+
+1. PROPAGATION BERDASARKAN DOCUMENT NUMBER
+
+Sistem akan secara otomatis menyamakan nilai field tertentu untuk semua rows yang memiliki document_number yang sama.
+
+Field yang DI-PROPAGATE (sama untuk semua rows dengan document_number yang sama):
+
+A. WTH (Withholding Tax) Fields:
+Wth 21 Cr - Jika ada row dengan account yang memiliki koreksi_obyek = Wth 21 Cr, maka semua rows dengan document_number yang sama akan memiliki nilai di field Wth 21 Cr
+
+Wth 23 Cr - Jika ada row dengan account yang memiliki koreksi_obyek = Wth 23 Cr, maka semua rows dengan document_number yang sama akan memiliki nilai di field Wth 23 Cr
+
+Wth 26 Cr - Jika ada row dengan account yang memiliki koreksi_obyek = Wth 26 Cr, maka semua rows dengan document_number yang sama akan memiliki nilai di field Wth 26 Cr
+
+Wth 4.2 Cr - Jika ada row dengan account yang memiliki koreksi_obyek = Wth 4.2 Cr, maka semua rows dengan document_number yang sama akan memiliki nilai di field Wth 4.2 Cr
+
+Wth 15 Cr - Jika ada row dengan account yang memiliki koreksi_obyek = Wth 15 Cr, maka semua rows dengan document_number yang sama akan memiliki nilai di field Wth 15 Cr
+
+B. PK CR (Pajak Keluaran Credit):
+PK Cr - Jika ada row dengan account yang memiliki koreksi_obyek = PK Cr, maka semua rows dengan document_number yang sama akan memiliki nilai di field PK Cr
+
+C. PM DB (Pajak Masukan Debet):
+PM DB - Jika ada row dengan account yang memiliki koreksi_obyek = PM DB, maka semua rows dengan document_number yang sama akan memiliki nilai di field PM DB
+
+D. Analisa K-O-T (Koreksi Obyek):
+Analisa K-O-T - Label dari koreksi_obyek account akan muncul di semua rows dengan document_number yang sama, jika ada row yang menggunakan account dengan koreksi_obyek tertentu
+
+Field yang TIDAK di-PROPAGATE (per row, independen):
+
+A. Koreksi:
+Setiap row memiliki nilai koreksi sendiri-sendiri
+Tidak terpengaruh oleh rows lain dengan document_number yang sama
+Bisa di-update manual per row
+
+B. Obyek:
+Setiap row memiliki nilai obyek sendiri-sendiri
+Tidak terpengaruh oleh rows lain dengan document_number yang sama
+Bisa di-update manual per row
+
+
+2. LOGIKA PROPAGATION
+
+Cara Kerja:
+
+1. Pendeteksian Flag (Koreksi Obyek):
+Sistem mencari di semua rows dengan document_number yang sama
+Jika salah satu row menggunakan account yang memiliki koreksi_obyek tertentu (misalnya PK Cr, Wth 21 Cr, dll)
+Maka nilai dari row tersebut akan di-propagate ke semua rows dengan document_number yang sama
+
+2. Sumber Nilai:
+Prioritas 1: Jika field sudah ada nilai yang terhitung (misalnya pk_cr, wth_21_cr sudah terisi), gunakan nilai tersebut
+Prioritas 2: Jika belum ada nilai, ambil dari credit (untuk WTH dan PK CR) atau debet (untuk PM DB) dari row yang memiliki account dengan flag tersebut
+
+3. Waktu Propagation:
+Otomatis dilakukan setelah proses upload selesai
+Atau bisa dilakukan manual dengan klik tombol Re-Propagate di halaman detail session
+
+
+3. CONTOH IMPLEMENTASI
+
+Contoh 1: PK Cr Propagation
+Document Number: INV-001
+
+Row 1: Account 21080000 (VAT OUT VAT PAYABLE, koreksi_obyek: PK Cr), Credit: 1.100.000
+Row 2: Account 41010100 (Penjualan Barang), Credit: 10.000.000
+Row 3: Account 11010002 (Kas), Debet: 11.100.000
+
+HASIL SETELAH PROPAGATION:
+Row 1, 2, 3: Semua memiliki nilai di field PK Cr = 1.100.000
+Row 1, 2, 3: Semua menampilkan label PK Cr di kolom Analisa K-O-T
+
+
+Contoh 2: Wth 21 Cr Propagation
+Document Number: INV-002
+
+Row 1: Account 21070600 (WITHHOLDING PPh ART 21, koreksi_obyek: Wth 21 Cr), Credit: 500.000
+Row 2: Account 11010002 (Kas), Debet: 10.000.000
+Row 3: Account 43010000 (DIRECT SALARIES), Debet: 9.500.000
+
+HASIL SETELAH PROPAGATION:
+Row 1, 2, 3: Semua memiliki nilai di field Wth 21 Cr = 500.000
+Row 1, 2, 3: Semua menampilkan label Wth 21 Cr di kolom Analisa K-O-T
+
+
+Contoh 3: Multiple Flags
+Document Number: INV-008
+
+Row 1: Account 21080000 (PK Cr flag), Credit: 1.100.000
+Row 2: Account 21070600 (Wth 21 Cr flag), Credit: 500.000
+Row 3: Account 41010100 (Penjualan), Credit: 15.000.000
+Row 4: Account 11010002 (Kas), Debet: 16.600.000
+
+HASIL SETELAH PROPAGATION:
+Row 1, 2, 3, 4: Semua memiliki nilai di field PK Cr = 1.100.000
+Row 1, 2, 3, 4: Semua memiliki nilai di field Wth 21 Cr = 500.000
+Row 1, 2, 3, 4: Semua menampilkan label (bisa PK Cr atau Wth 21 Cr) di kolom Analisa K-O-T
+
+
+Contoh 4: Koreksi dan Obyek Per Row
+Document Number: INV-009
+Row 1: Koreksi = Koreksi A, Obyek = Obyek A
+
+Document Number: INV-010
+Row 1: Koreksi = Koreksi B, Obyek = Obyek B
+
+HASIL:
+INV-009 Row 1 memiliki Koreksi = Koreksi A dan Obyek = Obyek A
+INV-010 Row 1 memiliki Koreksi = Koreksi B dan Obyek = Obyek B
+Nilai tidak saling mempengaruhi meskipun document_number berbeda
+Setiap row bisa di-update manual untuk koreksi dan obyek tanpa mempengaruhi rows lain
+
+
+4. ACCOUNT CODES YANG DIGUNAKAN UNTUK FLAG
+
+Berdasarkan master data accounts, account codes berikut memiliki koreksi_obyek yang digunakan untuk propagation:
+
+Account Code: 21080000
+Account Name: VAT OUT VAT PAYABLE
+Koreksi Obyek: PK Cr
+Field yang Di-Propagate: PK Cr
+
+Account Code: 21070600
+Account Name: WITHHOLDING PPh ART 21
+Koreksi Obyek: Wth 21 Cr
+Field yang Di-Propagate: Wth 21 Cr
+
+Account Code: 21070700
+Account Name: WITHHOLDING PPh ART 23 (2%)
+Koreksi Obyek: Wth 23 Cr
+Field yang Di-Propagate: Wth 23 Cr
+
+Account Code: 21070900
+Account Name: WITHHOLDING PPh ART 26
+Koreksi Obyek: Wth 26 Cr
+Field yang Di-Propagate: Wth 26 Cr
+
+Account Code: 21070100
+Account Name: WITHHOLDING PPh ART 4 CONSTRUCTION SERV
+Koreksi Obyek: Wth 4.2 Cr
+Field yang Di-Propagate: Wth 4.2 Cr
+
+Account Code: 21070500
+Account Name: WITHHOLDING PPh ART 15 AIR SERVICE 1.80
+Koreksi Obyek: Wth 15 Cr
+Field yang Di-Propagate: Wth 15 Cr
+
+
+5. EXPORT EXCEL
+
+Saat export ke Excel:
+Field WTH, PK CR, PM DB menampilkan nilai numerik (bukan label)
+Nilai numerik ini sudah ter-propagate sesuai dengan document_number
+Berguna untuk perhitungan dan analisis
+
+
+6. FITUR TAMBAHAN
+
+Multiple File Upload:
+Sistem mendukung upload unlimited files per batch
+Semua files dalam batch akan digabungkan dengan session_code yang sama
+Propagation akan dilakukan untuk semua rows dalam batch tersebut
+
+Manual Update Koreksi & Obyek:
+User bisa update koreksi dan obyek secara manual per row
+Update tidak akan mempengaruhi rows lain (karena tidak di-propagate)
+Setiap row independen untuk field koreksi dan obyek
+
+Re-Propagate Button:
+Tombol Re-Propagate tersedia di halaman detail session
+Berguna untuk trigger ulang propagation jika diperlukan
+Misalnya setelah update manual atau perubahan data
+
+
+KESIMPULAN
+
+Yang SAMA untuk semua rows dengan document_number yang sama:
+Wth 21 Cr, Wth 23 Cr, Wth 26 Cr, Wth 4.2 Cr, Wth 15 Cr
+PK Cr
+PM DB
+Analisa K-O-T (label)
+
+Yang BERBEDA per row (independen):
+Koreksi (per row, bisa di-update manual)
+Obyek (per row, bisa di-update manual)
+
+Prinsip:
+Jika document_number memiliki account dengan flag tertentu (koreksi_obyek), maka semua rows dengan document_number yang sama akan memiliki nilai di field tersebut
+Koreksi dan obyek tidak di-propagate, setiap row memiliki nilai sendiri-sendiri
+

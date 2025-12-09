@@ -551,7 +551,16 @@ func (r *UploadRepository) GetTransactionsBySessionCode(sessionCode string, limi
 				td.file_path,
 				td.filename,
 				accounts.nature as nature_akun,
-				accounts.koreksi_obyek as analisa_kot,
+				-- Analisa KOT: propagate label from ANY row with same document_number
+				(
+					SELECT MAX(acc_with.koreksi_obyek)
+					FROM transaction_data td_sub
+					LEFT JOIN accounts acc_with ON td_sub.account = acc_with.account_code
+					WHERE td_sub.document_number = td.document_number 
+						AND td_sub.session_code = td.session_code
+						AND acc_with.koreksi_obyek IS NOT NULL 
+						AND acc_with.koreksi_obyek != ''
+				) as analisa_kot,
 				td.koreksi,
 				td.obyek,
 				td.um_pajak_db,
@@ -567,8 +576,6 @@ func (r *UploadRepository) GetTransactionsBySessionCode(sessionCode string, limi
 				td.processing_error,
 				td.created_at,
 				td.updated_at,
-				accounts.nature as nature_akun,
-				accounts.koreksi_obyek as analisa_kot,
 				(
 					SELECT MAX(CASE WHEN acc_with.koreksi_obyek = 'Wth 4.2 Cr' THEN acc_with.account_name ELSE NULL END)
 					FROM transaction_data td_sub
@@ -585,19 +592,25 @@ func (r *UploadRepository) GetTransactionsBySessionCode(sessionCode string, limi
 					SELECT MAX(CASE WHEN acc_with.koreksi_obyek = 'Wth 21 Cr' THEN acc_with.account_name ELSE NULL END)
 					FROM transaction_data td_sub
 					LEFT JOIN accounts acc_with ON td_sub.account = acc_with.account_code
-					WHERE td_sub.document_number = td.document_number AND td_sub.session_code = td.session_code
+					WHERE td_sub.document_number = td.document_number 
+						AND td_sub.session_code = td.session_code
+						AND acc_with.koreksi_obyek = 'Wth 21 Cr'
 				) as withholding_pph_21,
 				(
 					SELECT MAX(CASE WHEN acc_with.koreksi_obyek = 'Wth 23 Cr' THEN acc_with.account_name ELSE NULL END)
 					FROM transaction_data td_sub
 					LEFT JOIN accounts acc_with ON td_sub.account = acc_with.account_code
-					WHERE td_sub.document_number = td.document_number AND td_sub.session_code = td.session_code
+					WHERE td_sub.document_number = td.document_number 
+						AND td_sub.session_code = td.session_code
+						AND acc_with.koreksi_obyek = 'Wth 23 Cr'
 				) as withholding_pph_23,
 				(
 					SELECT MAX(CASE WHEN acc_with.koreksi_obyek = 'Wth 26 Cr' THEN acc_with.account_name ELSE NULL END)
 					FROM transaction_data td_sub
 					LEFT JOIN accounts acc_with ON td_sub.account = acc_with.account_code
-					WHERE td_sub.document_number = td.document_number AND td_sub.session_code = td.session_code
+					WHERE td_sub.document_number = td.document_number 
+						AND td_sub.session_code = td.session_code
+						AND acc_with.koreksi_obyek = 'Wth 26 Cr'
 				) as withholding_pph_26,
 				(
 					SELECT MAX(CASE WHEN acc_with.koreksi_obyek = 'PK Cr' THEN acc_with.account_name ELSE NULL END)
@@ -609,7 +622,9 @@ func (r *UploadRepository) GetTransactionsBySessionCode(sessionCode string, limi
 					SELECT MAX(CASE WHEN acc_with.koreksi_obyek = 'PM DB' THEN acc_with.account_name ELSE NULL END)
 					FROM transaction_data td_sub
 					LEFT JOIN accounts acc_with ON td_sub.account = acc_with.account_code
-					WHERE td_sub.document_number = td.document_number AND td_sub.session_code = td.session_code
+					WHERE td_sub.document_number = td.document_number 
+						AND td_sub.session_code = td.session_code
+						AND acc_with.koreksi_obyek = 'PM DB'
 				) as pm_db_account
 			  FROM transaction_data td
 			  LEFT JOIN accounts ON td.account = accounts.account_code
@@ -744,6 +759,7 @@ func (r *UploadRepository) BulkUpdateTransactions(transactions []models.Transact
 }
 
 // UpdateTransactionKoreksiObyek updates koreksi and obyek fields of a transaction
+// Note: koreksi and obyek are NOT propagated - each row has its own values
 func (r *UploadRepository) UpdateTransactionKoreksiObyek(transactionID int64, koreksi, obyek *string, userID int, userRole string) error {
 	// First check if user has permission to update this transaction
 	if userRole != "admin" {
@@ -759,7 +775,7 @@ func (r *UploadRepository) UpdateTransactionKoreksiObyek(transactionID int64, ko
 		}
 	}
 
-	// Update koreksi and obyek fields
+	// Update koreksi and obyek fields (only for this specific row)
 	query := `
 		UPDATE transaction_data
 		SET
@@ -1014,7 +1030,8 @@ func (r *UploadRepository) GetTransactionsBySessionCodeWithCursor(
 		}
 	}
 
-	// Main query with JOIN to accounts for additional data and withholding accounts
+	// Main query with subqueries for propagation - ensures all rows with same document_number show same labels
+	// This uses subqueries to find account names from ANY row with the same document_number
 	query := fmt.Sprintf(`
 		SELECT
 			td.document_type,
@@ -1050,24 +1067,76 @@ func (r *UploadRepository) GetTransactionsBySessionCodeWithCursor(
 			td.created_at,
 			td.updated_at,
 			accounts.nature as nature_akun,
-			accounts.koreksi_obyek as analisa_kot,
-			-- Withholding account joins for proper names
-			COALESCE(acc_wth_42.account_name, td.wth_4_2_cr) AS withholding_pph_42,
-			COALESCE(acc_wth_15.account_name, td.wth_15_cr) AS withholding_pph_15,
-			COALESCE(acc_wth_21.account_name, td.wth_21_cr) AS withholding_pph_21,
-			COALESCE(acc_wth_23.account_name, td.wth_23_cr) AS withholding_pph_23,
-			COALESCE(acc_wth_26.account_name, td.wth_26_cr) AS withholding_pph_26,
-			COALESCE(acc_pk.account_name, td.pk_cr) AS pk_cr_account
+			-- Analisa KOT: propagate label from ANY row with same document_number
+			(
+				SELECT MAX(acc_with.koreksi_obyek)
+				FROM transaction_data td_sub
+				LEFT JOIN accounts acc_with ON td_sub.account = acc_with.account_code
+				WHERE td_sub.document_number = td.document_number 
+					AND td_sub.session_code = td.session_code
+					AND acc_with.koreksi_obyek IS NOT NULL 
+					AND acc_with.koreksi_obyek != ''
+			) as analisa_kot,
+			-- Withholding account names from ANY row with same document_number (propagation)
+			(
+				SELECT MAX(CASE WHEN acc_with.koreksi_obyek = 'Wth 4.2 Cr' THEN acc_with.account_name ELSE NULL END)
+				FROM transaction_data td_sub
+				LEFT JOIN accounts acc_with ON td_sub.account = acc_with.account_code
+				WHERE td_sub.document_number = td.document_number 
+					AND td_sub.session_code = td.session_code
+					AND acc_with.koreksi_obyek = 'Wth 4.2 Cr'
+			) as withholding_pph_42,
+			(
+				SELECT MAX(CASE WHEN acc_with.koreksi_obyek = 'Wth 15 Cr' THEN acc_with.account_name ELSE NULL END)
+				FROM transaction_data td_sub
+				LEFT JOIN accounts acc_with ON td_sub.account = acc_with.account_code
+				WHERE td_sub.document_number = td.document_number 
+					AND td_sub.session_code = td.session_code
+					AND acc_with.koreksi_obyek = 'Wth 15 Cr'
+			) as withholding_pph_15,
+			(
+				SELECT MAX(CASE WHEN acc_with.koreksi_obyek = 'Wth 21 Cr' THEN acc_with.account_name ELSE NULL END)
+				FROM transaction_data td_sub
+				LEFT JOIN accounts acc_with ON td_sub.account = acc_with.account_code
+				WHERE td_sub.document_number = td.document_number 
+					AND td_sub.session_code = td.session_code
+					AND acc_with.koreksi_obyek = 'Wth 21 Cr'
+			) as withholding_pph_21,
+			(
+				SELECT MAX(CASE WHEN acc_with.koreksi_obyek = 'Wth 23 Cr' THEN acc_with.account_name ELSE NULL END)
+				FROM transaction_data td_sub
+				LEFT JOIN accounts acc_with ON td_sub.account = acc_with.account_code
+				WHERE td_sub.document_number = td.document_number 
+					AND td_sub.session_code = td.session_code
+					AND acc_with.koreksi_obyek = 'Wth 23 Cr'
+			) as withholding_pph_23,
+			(
+				SELECT MAX(CASE WHEN acc_with.koreksi_obyek = 'Wth 26 Cr' THEN acc_with.account_name ELSE NULL END)
+				FROM transaction_data td_sub
+				LEFT JOIN accounts acc_with ON td_sub.account = acc_with.account_code
+				WHERE td_sub.document_number = td.document_number 
+					AND td_sub.session_code = td.session_code
+					AND acc_with.koreksi_obyek = 'Wth 26 Cr'
+			) as withholding_pph_26,
+			(
+				SELECT MAX(CASE WHEN acc_with.koreksi_obyek = 'PK Cr' THEN acc_with.account_name ELSE NULL END)
+				FROM transaction_data td_sub
+				LEFT JOIN accounts acc_with ON td_sub.account = acc_with.account_code
+				WHERE td_sub.document_number = td.document_number 
+					AND td_sub.session_code = td.session_code
+					AND acc_with.koreksi_obyek = 'PK Cr'
+			) as pk_cr_account,
+			(
+				SELECT MAX(CASE WHEN acc_with.koreksi_obyek = 'PM DB' THEN acc_with.account_name ELSE NULL END)
+				FROM transaction_data td_sub
+				LEFT JOIN accounts acc_with ON td_sub.account = acc_with.account_code
+				WHERE td_sub.document_number = td.document_number 
+					AND td_sub.session_code = td.session_code
+					AND acc_with.koreksi_obyek = 'PM DB'
+			) as pm_db_account
 		FROM transaction_data td
-		-- Main account join
+		-- Main account join for current row's account
 		LEFT JOIN accounts ON td.account = accounts.account_code
-		-- Withholding tax account joins
-		LEFT JOIN accounts acc_wth_42 ON td.wth_4_2_cr = acc_wth_42.account_code AND acc_wth_42.koreksi_obyek = 'Wth 4.2 Cr'
-		LEFT JOIN accounts acc_wth_15 ON td.wth_15_cr = acc_wth_15.account_code AND acc_wth_15.koreksi_obyek = 'Wth 1.5 Cr'
-		LEFT JOIN accounts acc_wth_21 ON td.wth_21_cr = acc_wth_21.account_code AND acc_wth_21.koreksi_obyek = 'Wth 2.1 Cr'
-		LEFT JOIN accounts acc_wth_23 ON td.wth_23_cr = acc_wth_23.account_code AND acc_wth_23.koreksi_obyek = 'Wth 2.3 Cr'
-		LEFT JOIN accounts acc_wth_26 ON td.wth_26_cr = acc_wth_26.account_code AND acc_wth_26.koreksi_obyek = 'Wth 2.6 Cr'
-		LEFT JOIN accounts acc_pk ON td.pk_cr = acc_pk.account_code AND acc_pk.koreksi_obyek = 'PK Cr'
 		%s
 		%s
 		LIMIT ?`, whereClause, orderByClause)
@@ -1161,4 +1230,127 @@ func (r *UploadRepository) GetTotalTransactionsBySessionCodeCount(sessionCode st
 	}
 
 	return total, nil
+}
+
+// PropagateDocumentNumberFields propagates field values to all rows with the same document_number
+// If a document_number has a row with account that has koreksi_obyek matching a flag (PK Cr, Wth 15 Cr, etc.),
+// then ALL rows with that document_number will have the value populated in the corresponding field.
+// Logic:
+// - For WTH/PK CR fields: If there's a calculated value, use it; otherwise use credit from the row with matching account
+// - For PM DB/UM Pajak DB: If there's a calculated value, use it; otherwise use debet from the row with matching account
+// Note: koreksi and obyek are NOT propagated - each row has its own values (independent per row)
+func (r *UploadRepository) PropagateDocumentNumberFields(sessionCode string) error {
+	// Use a single query to propagate all fields at once for better performance
+	// This query finds values from rows that have accounts with matching koreksi_obyek flags
+	// and propagates those values to all rows with the same document_number
+	
+	propagateQuery := `
+		UPDATE transaction_data td_target
+		INNER JOIN (
+			SELECT 
+				td.document_number,
+				td.session_code,
+				-- For WTH 4.2 Cr: if document_number has account with 'Wth 4.2 Cr' flag, propagate the value
+				MAX(CASE 
+					WHEN a.koreksi_obyek = 'Wth 4.2 Cr' THEN 
+						COALESCE(
+							NULLIF(td.wth_4_2_cr, 0), 
+							CASE WHEN td.credit > 0 THEN td.credit ELSE NULL END
+						)
+					ELSE NULL 
+				END) as wth_4_2_cr_val,
+				-- For WTH 15 Cr: if document_number has account with 'Wth 15 Cr' flag, propagate the value
+				MAX(CASE 
+					WHEN a.koreksi_obyek = 'Wth 15 Cr' THEN 
+						COALESCE(
+							NULLIF(td.wth_15_cr, 0), 
+							CASE WHEN td.credit > 0 THEN td.credit ELSE NULL END
+						)
+					ELSE NULL 
+				END) as wth_15_cr_val,
+				-- For WTH 21 Cr: if document_number has account with 'Wth 21 Cr' flag, propagate the value
+				MAX(CASE 
+					WHEN a.koreksi_obyek = 'Wth 21 Cr' THEN 
+						COALESCE(
+							NULLIF(td.wth_21_cr, 0), 
+							CASE WHEN td.credit > 0 THEN td.credit ELSE NULL END
+						)
+					ELSE NULL 
+				END) as wth_21_cr_val,
+				-- For WTH 23 Cr: if document_number has account with 'Wth 23 Cr' flag, propagate the value
+				MAX(CASE 
+					WHEN a.koreksi_obyek = 'Wth 23 Cr' THEN 
+						COALESCE(
+							NULLIF(td.wth_23_cr, 0), 
+							CASE WHEN td.credit > 0 THEN td.credit ELSE NULL END
+						)
+					ELSE NULL 
+				END) as wth_23_cr_val,
+				-- For WTH 26 Cr: if document_number has account with 'Wth 26 Cr' flag, propagate the value
+				MAX(CASE 
+					WHEN a.koreksi_obyek = 'Wth 26 Cr' THEN 
+						COALESCE(
+							NULLIF(td.wth_26_cr, 0), 
+							CASE WHEN td.credit > 0 THEN td.credit ELSE NULL END
+						)
+					ELSE NULL 
+				END) as wth_26_cr_val,
+				-- For PK CR: if document_number has account with 'PK Cr' flag, propagate the value
+				MAX(CASE 
+					WHEN a.koreksi_obyek = 'PK Cr' THEN 
+						COALESCE(
+							NULLIF(td.pk_cr, 0), 
+							CASE WHEN td.credit > 0 THEN td.credit ELSE NULL END
+						)
+					ELSE NULL 
+				END) as pk_cr_val,
+				-- For PM DB: if document_number has account with 'PM DB' flag, propagate the value
+				MAX(CASE 
+					WHEN a.koreksi_obyek = 'PM DB' THEN 
+						COALESCE(
+							NULLIF(td.pm_db, 0), 
+							CASE WHEN td.debet > 0 THEN td.debet ELSE NULL END
+						)
+					ELSE NULL 
+				END) as pm_db_val,
+				-- For UM Pajak DB: if document_number has account with 'UM Pajak DB' flag, propagate the value
+				MAX(CASE 
+					WHEN a.koreksi_obyek = 'UM Pajak DB' THEN 
+						COALESCE(
+							NULLIF(td.um_pajak_db, 0), 
+							CASE WHEN td.debet > 0 THEN td.debet ELSE NULL END
+						)
+					ELSE NULL 
+				END) as um_pajak_db_val
+				-- Note: koreksi and obyek are NOT propagated - each row has its own values
+			FROM transaction_data td
+			INNER JOIN accounts a ON td.account = a.account_code
+			WHERE td.session_code = ?
+				AND td.document_number IS NOT NULL
+				AND td.document_number != ''
+			GROUP BY td.document_number, td.session_code
+		) td_source ON td_target.document_number = td_source.document_number 
+			AND td_target.session_code = td_source.session_code
+		SET 
+			-- If flag exists for this document_number, set the value (even if it's 0, it will override existing value)
+			td_target.wth_4_2_cr = COALESCE(td_source.wth_4_2_cr_val, td_target.wth_4_2_cr),
+			td_target.wth_15_cr = COALESCE(td_source.wth_15_cr_val, td_target.wth_15_cr),
+			td_target.wth_21_cr = COALESCE(td_source.wth_21_cr_val, td_target.wth_21_cr),
+			td_target.wth_23_cr = COALESCE(td_source.wth_23_cr_val, td_target.wth_23_cr),
+			td_target.wth_26_cr = COALESCE(td_source.wth_26_cr_val, td_target.wth_26_cr),
+			td_target.pk_cr = COALESCE(td_source.pk_cr_val, td_target.pk_cr),
+			td_target.pm_db = COALESCE(td_source.pm_db_val, td_target.pm_db),
+			td_target.um_pajak_db = COALESCE(td_source.um_pajak_db_val, td_target.um_pajak_db)
+			-- Note: koreksi and obyek are NOT updated here - each row keeps its own values
+		WHERE td_target.session_code = ?
+			AND td_target.document_number IS NOT NULL
+			AND td_target.document_number != ''
+	`
+	
+	_, err := r.db.Exec(propagateQuery, sessionCode, sessionCode)
+	if err != nil {
+		return fmt.Errorf("failed to propagate document number fields: %w", err)
+	}
+
+	return nil
 }

@@ -231,6 +231,10 @@
                             <i class="fas fa-stop mr-2"></i>
                             <span>Cancel</span>
                         </button>
+                        <!-- <button id="propagateButton" onclick="propagateFields()" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-xl transition-all duration-300 hover-lift flex items-center">
+                            <i class="fas fa-sync mr-2"></i>
+                            <span id="propagateButtonText">Re-Propagate</span>
+                        </button> -->
                         <button id="exportButton" onclick="exportSession()" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-xl transition-all duration-300 hover-lift flex items-center">
                             <i class="fas fa-download mr-2"></i>
                             <span id="exportButtonText">Export</span>
@@ -894,6 +898,45 @@
                 }
             } catch (error) {
                 console.error('Progress check error:', error);
+            }
+        }
+
+        async function propagateFields() {
+            const propagateButton = document.getElementById('propagateButton');
+            const propagateButtonText = document.getElementById('propagateButtonText');
+
+            // Disable button and show loading
+            propagateButton.disabled = true;
+            propagateButton.classList.add('opacity-75');
+            propagateButtonText.textContent = 'Propagating...';
+
+            try {
+                const response = await fetch(`/api/v1/uploads/session/${sessionCode}/propagate`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Show success message
+                    alert('Fields propagated successfully! Refreshing page...');
+                    // Reload transactions to show updated values
+                    loadTransactions();
+                } else {
+                    alert(`Failed to propagate fields: ${data.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('Propagation error:', error);
+                alert(`Error: ${error.message}`);
+            } finally {
+                // Re-enable button
+                propagateButton.disabled = false;
+                propagateButton.classList.remove('opacity-75');
+                propagateButtonText.textContent = 'Re-Propagate';
             }
         }
 

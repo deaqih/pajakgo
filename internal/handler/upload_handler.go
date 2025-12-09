@@ -75,11 +75,7 @@ func (h *UploadHandler) UploadMultipleFiles(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, "No files selected", nil)
 	}
 
-	// Validate file count limit (20 files)
-	const MAX_FILES = 20
-	if len(files) > MAX_FILES {
-		return utils.ErrorResponse(c, fiber.StatusBadRequest, fmt.Sprintf("Maximum %d files allowed per upload", MAX_FILES), nil)
-	}
+	// No file count limit - unlimited files per batch
 
 	// Validate total size limit (2GB for large uploads)
 	const MAX_TOTAL_SIZE = 2 * 1024 * 1024 * 1024
@@ -868,6 +864,32 @@ func (h *UploadHandler) CancelSession(c *fiber.Ctx) error {
 
 	return utils.SuccessResponse(c, "Processing canceled successfully", fiber.Map{
 		"session": session,
+	})
+}
+
+// PropagateDocumentNumberFields triggers propagation of field values for a session
+// This ensures all rows with the same document_number have the same values for WTH fields, PK CR, PM DB, etc.
+func (h *UploadHandler) PropagateDocumentNumberFields(c *fiber.Ctx) error {
+	sessionCode := c.Params("session_code")
+	if sessionCode == "" {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Session code is required", nil)
+	}
+
+	// Verify session exists
+	session, err := h.uploadRepo.GetSessionByCode(sessionCode)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusNotFound, "Session not found", err)
+	}
+
+	// Trigger propagation
+	if err := h.uploadRepo.PropagateDocumentNumberFields(sessionCode); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to propagate document number fields", err)
+	}
+
+	return utils.SuccessResponse(c, "Document number fields propagated successfully", fiber.Map{
+		"session_code": sessionCode,
+		"session_id":   session.ID,
+		"message":      "All rows with the same document_number now have propagated field values",
 	})
 }
 
